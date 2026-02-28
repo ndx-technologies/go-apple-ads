@@ -1,7 +1,7 @@
 # 🔥 Apple Ads Toolkit
 
-Tools for structured access to Apple Ads, export/import config, apply changes, and analyze data.
-Use this toolkit to setup your AI driven Apple Ads GitOps. 
+Tools for structured access to Apple Ads, export/import config, apply changes, analyze data.
+Use this toolkit to setup your AI-driven Apple Ads GitOps. 
 
 ## Setup
 
