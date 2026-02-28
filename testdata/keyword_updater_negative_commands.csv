@@ -1,0 +1,3 @@
+Action,Keyword ID,Negative Keyword,Match Type,Campaign ID,Ad Group ID
+CREATE,,market,BROAD,2142845006,2143951277
+DELETE,2183598762,99 motorista,EXACT,2142845006,2143951277

@@ -1,0 +1,178 @@
+package main
+
+import (
+	"flag"
+	"io"
+	"log"
+	"maps"
+	"os"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/ndx-technologies/fmtx"
+	goappleads "github.com/ndx-technologies/go-apple-ads"
+	"github.com/ndx-technologies/iterx"
+	"github.com/ndx-technologies/timex"
+)
+
+func colorizeValue(s string, value, baseline float64, higherIsBetter bool) string {
+	if value <= 0 || baseline <= 0 {
+		return fmtx.DimS(s)
+	}
+
+	if higherIsBetter {
+		if value > baseline {
+			return fmtx.GreenS(s)
+		} else if value < baseline*0.7 {
+			return fmtx.RedS(s)
+		} else {
+			return fmtx.YellowS(s)
+		}
+	} else {
+		if value < baseline {
+			return fmtx.GreenS(s)
+		} else {
+			return fmtx.RedS(s)
+		}
+	}
+}
+
+func printBaselines(w io.StringWriter, showID bool, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config) {
+	fmtx.HeaderTo(w, "CAMPAIGN STATS")
+
+	campaigns := slices.Collect(maps.Keys(baselines))
+
+	sort.Slice(campaigns, func(i, j int) bool {
+		ci := baselines[campaigns[i]].CPI
+		cj := baselines[campaigns[j]].CPI
+		if ci == 0 {
+			ci = 9999
+		}
+		if cj == 0 {
+			cj = 9999
+		}
+		return ci < cj
+	})
+
+	tw := fmtx.TableWriter{
+		Indent: "  ",
+		Out:    w,
+		Cols: []fmtx.TablCol{
+			{Header: "Campaign", Width: 20},
+			{Header: "CPI", Width: 7, Alignment: fmtx.AlignRight},
+			{Header: "CVR", Width: 7, Alignment: fmtx.AlignRight},
+			{Header: "CTR", Width: 7, Alignment: fmtx.AlignRight},
+			{Header: "Inst", Width: 6, Alignment: fmtx.AlignRight},
+			{Header: "Installs", Width: 20},
+			{Header: "Spend(USD)", Width: 12, Alignment: fmtx.AlignRight},
+		},
+	}
+
+	if showID {
+		tw.Cols = append([]fmtx.TablCol{{Header: "ID", Width: 10}}, tw.Cols...)
+	}
+
+	tw.WriteHeader()
+	tw.WriteSubHeader(
+		"",
+		strconv.FormatFloat(overall.CPI, 'f', 2, 64),
+		strconv.FormatFloat(overall.CVR*100, 'f', 1, 64)+"%",
+		strconv.FormatFloat(overall.CTR*100, 'f', 2, 64)+"%",
+		strconv.Itoa(overall.Inst),
+		"",
+		strconv.FormatFloat(overall.Spend, 'f', 2, 64),
+	)
+	tw.WriteHeaderLine()
+
+	for _, c := range campaigns {
+		campaignConfig := config.GetCampaign(c)
+
+		row := []string{
+			campaignConfig.Name,
+			colorizeValue(strconv.FormatFloat(baselines[c].CPI, 'f', 2, 64), baselines[c].CPI, overall.CPI, false),
+			colorizeValue(strconv.FormatFloat(baselines[c].CVR*100, 'f', 1, 64)+"%", baselines[c].CVR, overall.CVR, true),
+			colorizeValue(strconv.FormatFloat(baselines[c].CTR*100, 'f', 2, 64)+"%", baselines[c].CTR, overall.CTR, true),
+			strconv.Itoa(baselines[c].Inst),
+			fmtx.VolumeBar(baselines[c].Inst, overall.Inst, 20.0),
+			strconv.FormatFloat(baselines[c].Spend, 'f', 2, 64),
+		}
+
+		if showID {
+			row = append([]string{fmtx.DimS(c.String())}, row...)
+		}
+
+		tw.WriteRow(row...)
+	}
+	w.WriteString("\n")
+}
+
+const doc string = "Apple Ads Campaigns Analysis — stats\n\n"
+
+func main() {
+	var (
+		applePath        string
+		keywordStatsCSV  string
+		campaignStatsCSV string
+		showID           bool
+		campaignIDsStr   string
+		from, until      time.Time
+	)
+	flag.Usage = func() {
+		flag.CommandLine.Output().Write([]byte(doc))
+		flag.PrintDefaults()
+	}
+	flag.StringVar(&applePath, "apple_path", "apple-ads", "path to apple ads dir")
+	flag.StringVar(&keywordStatsCSV, "keyword_stats_csv", "data/apple_ads_search_keywords_by_day.csv", "path to keyword stats by day CSV")
+	flag.StringVar(&campaignStatsCSV, "campaign_stats_csv", "data/apple_ads_campaign_stats_by_day.csv", "path to campaign stats by day CSV")
+	flag.BoolVar(&showID, "id", false, "show IDs")
+	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
+	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
+	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
+	flag.Func("until", "until UTC day start (e.g. 2025-12-31)", timex.TimeParserWithFormat(&until, time.DateOnly))
+	flag.Parse()
+
+	config, _, err := goappleads.Load(applePath)
+	if err != nil {
+		log.Fatal("failed to load config and keywords:", err)
+	}
+
+	var keepCampaignIDs map[goappleads.CampaignID]bool
+
+	if len(campaignIDsStr) > 0 {
+		keepCampaignIDs = make(map[goappleads.CampaignID]bool)
+		for id := range strings.SplitSeq(campaignIDsStr, ",") {
+			keepCampaignIDs[goappleads.CampaignID(id)] = true
+		}
+	}
+
+	var keywordsStats []goappleads.KeywordRow
+	for e := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
+		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
+			continue
+		}
+		if keepCampaignIDs != nil && !keepCampaignIDs[e.CampaignID] {
+			continue
+		}
+		keywordsStats = append(keywordsStats, e)
+	}
+
+	var campaigns []goappleads.CampaignRow
+	for e := range iterx.FromFile(campaignStatsCSV, goappleads.ParseCampaignsStatsCSV) {
+		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
+			continue
+		}
+		if keepCampaignIDs != nil && !keepCampaignIDs[e.CampaignID] {
+			continue
+		}
+		campaigns = append(campaigns, e)
+	}
+
+	baselines, overall := goappleads.ComputeBaselines(keywordsStats)
+
+	w := os.Stdout
+
+	printBaselines(w, showID, baselines, overall, *config)
+}
