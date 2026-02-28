@@ -18,28 +18,6 @@ import (
 	"github.com/ndx-technologies/timex"
 )
 
-func colorizeValue(s string, value, baseline float64, higherIsBetter bool) string {
-	if value <= 0 || baseline <= 0 {
-		return fmtx.DimS(s)
-	}
-
-	if higherIsBetter {
-		if value > baseline {
-			return fmtx.GreenS(s)
-		} else if value < baseline*0.7 {
-			return fmtx.RedS(s)
-		} else {
-			return fmtx.YellowS(s)
-		}
-	} else {
-		if value < baseline {
-			return fmtx.GreenS(s)
-		} else {
-			return fmtx.RedS(s)
-		}
-	}
-}
-
 func printBaselines(w io.StringWriter, showID bool, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config) {
 	fmtx.HeaderTo(w, "CAMPAIGN STATS")
 
@@ -88,13 +66,28 @@ func printBaselines(w io.StringWriter, showID bool, baselines map[goappleads.Cam
 	tw.WriteHeaderLine()
 
 	for _, c := range campaigns {
-		campaignConfig := config.GetCampaign(c)
+		campaign := config.GetCampaign(c)
+
+		cpiStr := fmtx.DimS(strconv.FormatFloat(baselines[c].CPI, 'f', 2, 64))
+		if baselines[c].Inst > 0 {
+			cpiStr = fmtx.ColorizeDist(strconv.FormatFloat(baselines[c].CPI, 'f', 2, 64), baselines[c].CPI, []float64{overall.CPI}, []string{fmtx.Green, fmtx.Red})
+		}
+
+		cvrStr := fmtx.DimS(strconv.FormatFloat(baselines[c].CVR*100, 'f', 1, 64) + "%")
+		if baselines[c].Imp > 0 {
+			cvrStr = fmtx.ColorizeDist(strconv.FormatFloat(baselines[c].CVR*100, 'f', 1, 64)+"%", baselines[c].CVR, []float64{overall.CVR * 0.7, overall.CVR}, []string{fmtx.Red, fmtx.Yellow, fmtx.Green})
+		}
+
+		ctrStr := fmtx.DimS(strconv.FormatFloat(baselines[c].CTR*100, 'f', 2, 64) + "%")
+		if baselines[c].Taps > 0 {
+			ctrStr = fmtx.ColorizeDist(strconv.FormatFloat(baselines[c].CTR*100, 'f', 2, 64)+"%", baselines[c].CTR, []float64{overall.CTR * 0.7, overall.CTR}, []string{fmtx.Red, fmtx.Yellow, fmtx.Green})
+		}
 
 		row := []string{
-			campaignConfig.Name,
-			colorizeValue(strconv.FormatFloat(baselines[c].CPI, 'f', 2, 64), baselines[c].CPI, overall.CPI, false),
-			colorizeValue(strconv.FormatFloat(baselines[c].CVR*100, 'f', 1, 64)+"%", baselines[c].CVR, overall.CVR, true),
-			colorizeValue(strconv.FormatFloat(baselines[c].CTR*100, 'f', 2, 64)+"%", baselines[c].CTR, overall.CTR, true),
+			campaign.Name,
+			cpiStr,
+			cvrStr,
+			ctrStr,
 			strconv.Itoa(baselines[c].Inst),
 			fmtx.VolumeBar(baselines[c].Inst, overall.Inst, 20.0),
 			strconv.FormatFloat(baselines[c].Spend, 'f', 2, 64),
