@@ -352,14 +352,7 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 		}
 		sort.Strings(agNames)
 
-		paused := true
-		if !allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
-			paused = false
-		}
-		if !allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...) {
-			paused = false
-		}
-
+		paused := allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) || allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...)
 		if paused {
 			if !showPaused {
 				continue
@@ -485,13 +478,7 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 			action = fmtx.DimS("monitor (1 inst)")
 		}
 
-		paused := true
-		if !allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
-			paused = false
-		}
-		if !allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...) {
-			paused = false
-		}
+		paused := allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) || allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...)
 		if paused {
 			if !showPaused {
 				continue
@@ -593,13 +580,7 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 
 	var highConf, medConf, lowConf []TermInfo
 	for _, item := range wasteful {
-		paused := true
-		if !allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
-			paused = false
-		}
-		if !allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...) {
-			paused = false
-		}
+		paused := allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) || allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...)
 		if !showPaused && paused {
 			continue
 		}
