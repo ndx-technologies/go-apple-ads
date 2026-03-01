@@ -485,7 +485,14 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 			action = fmtx.DimS("monitor (1 inst)")
 		}
 
-		if allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
+		paused := true
+		if !allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
+			paused = false
+		}
+		if !allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...) {
+			paused = false
+		}
+		if paused {
 			if !showPaused {
 				continue
 			}
@@ -586,10 +593,6 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 
 	var highConf, medConf, lowConf []TermInfo
 	for _, item := range wasteful {
-		if !showPaused && allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
-			continue
-		}
-
 		paused := true
 		if !allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
 			paused = false
@@ -597,7 +600,6 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 		if !allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...) {
 			paused = false
 		}
-
 		if !showPaused && paused {
 			continue
 		}
