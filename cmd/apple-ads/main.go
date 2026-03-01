@@ -19,7 +19,6 @@ import (
 )
 
 type CommandInfo struct {
-	Name     string
 	DocShort string
 	Run      func(args []string)
 }
