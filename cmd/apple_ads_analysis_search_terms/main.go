@@ -196,32 +196,6 @@ func isKeywordNegative(kws []goappleads.KeywordInfo) bool {
 	return false
 }
 
-func allCampaignsPaused(config goappleads.Config, campaigns ...goappleads.CampaignID) bool {
-	if len(campaigns) == 0 {
-		return false
-	}
-	for _, cid := range campaigns {
-		campaign := config.GetCampaign(cid)
-		if campaign.Status != goappleads.Paused {
-			return false
-		}
-	}
-	return true
-}
-
-func allAdGroupsPaused(config goappleads.Config, adgroups ...goappleads.AdGroupID) bool {
-	if len(adgroups) == 0 {
-		return false
-	}
-	for _, agid := range adgroups {
-		adgroup := config.GetAdGroup(agid)
-		if adgroup.Status != goappleads.Paused {
-			return false
-		}
-	}
-	return true
-}
-
 func printSearchTermsOverview(w io.StringWriter, searchTerms []goappleads.SearchTermRow) {
 	fmtx.HeaderTo(w, "SEARCH TERMS — OVERVIEW")
 	byTerm := aggregateSearchTerms(searchTerms)
@@ -300,6 +274,11 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 			{Header: "Action", Width: 22},
 		},
 	}
+
+	if showPaused {
+		tw.Cols = slices.Insert(tw.Cols, 12, fmtx.TablCol{Header: "", Width: 1})
+	}
+
 	w.WriteString("\n")
 	tw.WriteHeader()
 	tw.WriteHeaderLine()
@@ -352,15 +331,7 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 		}
 		sort.Strings(agNames)
 
-		paused := allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) || allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...)
-		if paused {
-			if !showPaused {
-				continue
-			}
-			action = fmtx.DimS("paused")
-		}
-
-		tw.WriteRow(
+		row := []string{
 			fmt.Sprintf("%d.", i+1),
 			item.term,
 			fmt.Sprintf("$%.2f", cpi),
@@ -374,7 +345,16 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 			strings.Join(campNames, ", "),
 			strings.Join(agNames, ", "),
 			action,
-		)
+		}
+
+		if config.IsAdGroupPausedAll(slices.Collect(maps.Keys(item.data.AdGroups))) {
+			if !showPaused {
+				continue
+			}
+			row = slices.Insert(row, 12, fmtx.RedS("⏸"))
+		}
+
+		tw.WriteRow(row...)
 	}
 
 	great := 0
@@ -441,6 +421,8 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 
 	w.WriteString(fmt.Sprintf("\n Baselines (search terms): CVR=%.1f%%, CTR=%.2f%%, CPI=$%.2f\n", stBase.CVR*100, stBase.CTR*100, stBase.CPI))
 	w.WriteString(fmtx.GreenS(" ★") + " = great CPI (<50% of baseline) — strong add candidate\n")
+	w.WriteString("\n")
+
 	tw := fmtx.TableWriter{
 		Indent:     "  ",
 		Out:        w,
@@ -459,51 +441,49 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 			{Header: "Action", Width: 22},
 		},
 	}
-	w.WriteString("\n")
+	if showPaused {
+		tw.Cols = slices.Insert(tw.Cols, 10, fmtx.TablCol{Header: "", Width: 1})
+	}
 	tw.WriteHeader()
 	tw.WriteHeaderLine()
 
 	for i, item := range candidates[:min(n, len(candidates))] {
+		paused := config.IsAdGroupPausedAll(slices.Collect(maps.Keys(item.data.AdGroups)))
+		if paused && !showPaused {
+			continue
+		}
+
 		cpi := item.data.Spend / float64(item.data.Inst)
 		cvr := divSafe(item.data.Inst, item.data.Taps)
 
 		var action string
-		if cpi < stBase.CPI*0.5 && item.data.Inst >= 2 {
-			action = fmtx.GreenS("★ add as [exact]")
-		} else if item.data.Inst >= 3 {
-			action = fmtx.GreenS("add as [exact]")
-		} else if item.data.Inst >= 2 {
-			action = fmtx.YellowS("consider adding")
-		} else {
-			action = fmtx.DimS("monitor (1 inst)")
-		}
-
-		paused := allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) || allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...)
-		if paused {
-			if !showPaused {
-				continue
+		if !paused {
+			if cpi < stBase.CPI*0.5 && item.data.Inst >= 2 {
+				action = fmtx.GreenS("★ add as [exact]")
+			} else if item.data.Inst >= 3 {
+				action = fmtx.GreenS("add as [exact]")
+			} else if item.data.Inst >= 2 {
+				action = fmtx.YellowS("consider adding")
+			} else {
+				action = fmtx.DimS("monitor (1 inst)")
 			}
-			action = fmtx.DimS("⏸ adgroup paused")
 		}
 
 		campNames := make([]string, 0, len(item.data.Campaigns))
-		for cid := range item.data.Campaigns {
-			campNames = append(campNames, config.GetCampaign(cid).Name)
+		for id := range item.data.Campaigns {
+			campaign := config.GetCampaign(id)
+			campNames = append(campNames, campaign.Name)
 		}
 		sort.Strings(campNames)
 
 		agNames := make([]string, 0, len(item.data.AdGroups))
-		for agid := range item.data.AdGroups {
-			ag := config.GetAdGroup(agid)
-			name := ag.Name
-			if ag.Status == goappleads.Paused {
-				name += " ⏸"
-			}
-			agNames = append(agNames, name)
+		for id := range item.data.AdGroups {
+			adgroup := config.GetAdGroup(id)
+			agNames = append(agNames, adgroup.Name)
 		}
 		sort.Strings(agNames)
 
-		tw.WriteRow(
+		row := []string{
 			fmt.Sprintf("%d.", i+1),
 			item.term,
 			fmt.Sprintf("$%.2f", cpi),
@@ -515,7 +495,17 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 			strings.Join(campNames, ", "),
 			strings.Join(agNames, ", "),
 			action,
-		)
+		}
+
+		if showPaused {
+			if paused {
+				row = slices.Insert(row, 10, fmtx.RedS("⏸"))
+			} else {
+				row = slices.Insert(row, 10, "")
+			}
+		}
+
+		tw.WriteRow(row...)
 	}
 	w.WriteString("\n")
 }
@@ -580,9 +570,10 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 
 	var highConf, medConf, lowConf []TermInfo
 	for _, item := range wasteful {
-		paused := allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) || allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...)
-		if !showPaused && paused {
-			continue
+		if config.IsAdGroupPausedAll(slices.Collect(maps.Keys(item.data.AdGroups))) {
+			if !showPaused {
+				continue
+			}
 		}
 
 		pZero := pZeroInstalls(item.data.Taps, stBase.CVR)
@@ -640,7 +631,7 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 	}
 
 	w.WriteString("\n")
-	w.WriteString("SUMMARY:")
+	w.WriteString("SUMMARY:\n")
 	w.WriteString(fmt.Sprintf(" %s High-confidence negates (P(0)<10%%): %d terms ($%.2f wasted)\n", fmtx.RedS("✗"), len(highConf), totalSpentHighConf))
 	w.WriteString(fmt.Sprintf(" %s Med-confidence likely negates (P(0) 10-30%%): %d terms ($%.2f)\n", fmtx.YellowS("~"), len(medConf), totalSpentMedConf))
 	w.WriteString(fmt.Sprintf(" %s Low-confidence/monitor: %d terms ($%.2f)\n", fmtx.DimS("?"), len(lowConf), totalSpentLowConf))
@@ -762,7 +753,7 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 			{Header: "Rank", Width: 4, Alignment: fmtx.AlignRight},
 			{Header: "ImpShare", Width: 9, Alignment: fmtx.AlignRight},
 			{Header: "", Width: 6, Alignment: fmtx.AlignRight},
-			{Header: "Impression", Width: 10, Alignment: fmtx.AlignRight},
+			{Header: "Impression", Width: 11, Alignment: fmtx.AlignRight},
 			{Header: "Potential.Imp", Width: 13, Alignment: fmtx.AlignRight},
 			{Header: "Spend"},
 			{Header: "CPI"},
@@ -906,11 +897,13 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 			}
 		}
 
-		if !showNegativeKeywords && isAllNegative {
-			continue
-		}
-		if !showPaused && isAllPaused {
-			continue
+		if hasExact || hasBroad {
+			if !showNegativeKeywords && isAllNegative {
+				continue
+			}
+			if !showPaused && isAllPaused {
+				continue
+			}
 		}
 
 		existStr := "-"

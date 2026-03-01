@@ -40,7 +40,7 @@ func ratioVsBaseline(value, baseline float64, higherIsBetter bool, ok bool) stri
 	}
 }
 
-func printAdGroupPerformance(w io.StringWriter, showID bool, keywords []goappleads.KeywordRow, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) {
+func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keywords []goappleads.KeywordRow, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) {
 	fmtx.HeaderTo(w, "ADGROUP PERFORMANCE")
 
 	type Agg struct {
@@ -133,6 +133,11 @@ func printAdGroupPerformance(w io.StringWriter, showID bool, keywords []goapplea
 		if showID {
 			w.WriteString(" " + fmtx.DimS("("+campaign.ID.String()+")"))
 		}
+		if showPaused {
+			if campaign.Status == goappleads.Paused {
+				w.WriteString(" " + fmtx.DimS("⏸"))
+			}
+		}
 		w.WriteString("\n")
 
 		maxInst := 0
@@ -208,8 +213,13 @@ func printAdGroupPerformance(w io.StringWriter, showID bool, keywords []goapplea
 
 			adgroup := config.GetAdGroup(g.adGroup)
 
+			name := adgroup.Name
+			if showPaused && adgroup.Status == goappleads.Paused {
+				name += " " + fmtx.DimS("⏸")
+			}
+
 			row := []string{
-				adgroup.Name,
+				name,
 				strconv.Itoa(keywordsDB.NumKeywordsInAdGroup(g.adGroup)),
 				strconv.Itoa(d.Inst),
 				fmtx.VolumeBar(d.Inst, maxInst, 10),
@@ -240,7 +250,7 @@ func Run(args []string) {
 		applePath                     string
 		keywordStatsCSV               string
 		campaignIDsStr, adGroupIDsStr string
-		showID                        bool
+		showID, showPaused            bool
 		from, until                   time.Time
 	)
 	flag.Usage = func() {
@@ -253,6 +263,7 @@ func Run(args []string) {
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")
 	flag.BoolVar(&showID, "id", false, "show IDs")
+	flag.BoolVar(&showPaused, "paused", false, "include paused adgroups, campaigns")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
 	flag.Func("until", "until UTC day start (e.g. 2025-12-31)", timex.TimeParserWithFormat(&until, time.DateOnly))
 	flag.Parse(args)
@@ -291,6 +302,9 @@ func Run(args []string) {
 		if keepAdGroupIDs != nil && !keepAdGroupIDs[e.AdGroupID] {
 			continue
 		}
+		if config.IsAdGroupPaused(e.AdGroupID) && !showPaused {
+			continue
+		}
 		keywordsStats = append(keywordsStats, e)
 	}
 
@@ -298,5 +312,5 @@ func Run(args []string) {
 
 	w := os.Stdout
 
-	printAdGroupPerformance(w, showID, keywordsStats, baselines, overall, *config, keywordsDB)
+	printAdGroupPerformance(w, showID, showPaused, keywordsStats, baselines, overall, *config, keywordsDB)
 }

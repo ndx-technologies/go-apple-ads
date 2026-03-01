@@ -342,7 +342,7 @@ func printCannibalizationAnalysis(
 
 				kw := keywordDB.GetKeywordInfo(e.KeywordID)
 
-				if kw.Status == goappleads.Paused {
+				if kw.Status == goappleads.Paused || config.IsAdGroupPaused(kw.AdGroupID) {
 					pausedStr = fmtx.DimS("⏸")
 				}
 

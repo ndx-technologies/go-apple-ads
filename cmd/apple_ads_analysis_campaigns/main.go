@@ -18,7 +18,7 @@ import (
 	"github.com/ndx-technologies/timex"
 )
 
-func printBaselines(w io.StringWriter, showID bool, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config) {
+func printBaselines(w io.StringWriter, showID, showPaused bool, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config) {
 	fmtx.HeaderTo(w, "CAMPAIGN STATS")
 
 	campaigns := slices.Collect(maps.Keys(baselines))
@@ -83,8 +83,13 @@ func printBaselines(w io.StringWriter, showID bool, baselines map[goappleads.Cam
 			ctrStr = fmtx.ColorizeDist(strconv.FormatFloat(baselines[c].CTR*100, 'f', 2, 64)+"%", baselines[c].CTR, []float64{overall.CTR * 0.7, overall.CTR}, []string{fmtx.Red, fmtx.Yellow, fmtx.Green})
 		}
 
+		name := campaign.Name
+		if showPaused && campaign.Status == goappleads.Paused {
+			name += " " + fmtx.DimS("⏸")
+		}
+
 		row := []string{
-			campaign.Name,
+			name,
 			cpiStr,
 			cvrStr,
 			ctrStr,
@@ -108,12 +113,12 @@ const doc string = "Apple Ads Campaigns Analysis — stats\n\n"
 func Run(args []string) {
 	flag := flag.NewFlagSet("analyse campaigns", flag.ExitOnError)
 	var (
-		applePath        string
-		keywordStatsCSV  string
-		campaignStatsCSV string
-		showID           bool
-		campaignIDsStr   string
-		from, until      time.Time
+		applePath          string
+		keywordStatsCSV    string
+		campaignStatsCSV   string
+		showID, showPaused bool
+		campaignIDsStr     string
+		from, until        time.Time
 	)
 	flag.Usage = func() {
 		flag.Output().Write([]byte(doc))
@@ -123,6 +128,7 @@ func Run(args []string) {
 	flag.StringVar(&keywordStatsCSV, "keyword_stats_csv", "data/apple_ads_search_keywords_by_day.csv", "path to keyword stats by day CSV")
 	flag.StringVar(&campaignStatsCSV, "campaign_stats_csv", "data/apple_ads_campaign_stats_by_day.csv", "path to campaign stats by day CSV")
 	flag.BoolVar(&showID, "id", false, "show IDs")
+	flag.BoolVar(&showPaused, "paused", false, "include paused campaigns")
 	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
@@ -151,6 +157,12 @@ func Run(args []string) {
 		if keepCampaignIDs != nil && !keepCampaignIDs[e.CampaignID] {
 			continue
 		}
+		if !showPaused {
+			campaign := config.GetCampaign(e.CampaignID)
+			if campaign.Status == goappleads.Paused {
+				continue
+			}
+		}
 		keywordsStats = append(keywordsStats, e)
 	}
 
@@ -162,6 +174,12 @@ func Run(args []string) {
 		if keepCampaignIDs != nil && !keepCampaignIDs[e.CampaignID] {
 			continue
 		}
+		if !showPaused {
+			campaign := config.GetCampaign(e.CampaignID)
+			if campaign.Status == goappleads.Paused {
+				continue
+			}
+		}
 		campaigns = append(campaigns, e)
 	}
 
@@ -169,5 +187,5 @@ func Run(args []string) {
 
 	w := os.Stdout
 
-	printBaselines(w, showID, baselines, overall, *config)
+	printBaselines(w, showID, showPaused, baselines, overall, *config)
 }
