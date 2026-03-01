@@ -379,7 +379,7 @@ func Run(args []string) {
 	flag.BoolVar(&showID, "id", false, "show IDs")
 	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
 	flag.BoolVar(&verbose, "v", false, "verbose: print full table; by default prints one-line summary")
-	flag.BoolVar(&showPaused, "paused", false, "include paused keywords, adgroups, campaigns (not all sections support this)")
+	flag.BoolVar(&showPaused, "paused", false, "include paused keywords, adgroups, campaigns")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))

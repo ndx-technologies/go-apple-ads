@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"math"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -194,6 +196,32 @@ func isKeywordNegative(kws []goappleads.KeywordInfo) bool {
 	return false
 }
 
+func allCampaignsPaused(config goappleads.Config, campaigns ...goappleads.CampaignID) bool {
+	if len(campaigns) == 0 {
+		return false
+	}
+	for _, cid := range campaigns {
+		campaign := config.GetCampaign(cid)
+		if campaign.Status != goappleads.Paused {
+			return false
+		}
+	}
+	return true
+}
+
+func allAdGroupsPaused(config goappleads.Config, adgroups ...goappleads.AdGroupID) bool {
+	if len(adgroups) == 0 {
+		return false
+	}
+	for _, agid := range adgroups {
+		adgroup := config.GetAdGroup(agid)
+		if adgroup.Status != goappleads.Paused {
+			return false
+		}
+	}
+	return true
+}
+
 func printSearchTermsOverview(w io.StringWriter, searchTerms []goappleads.SearchTermRow) {
 	fmtx.HeaderTo(w, "SEARCH TERMS — OVERVIEW")
 	byTerm := aggregateSearchTerms(searchTerms)
@@ -216,7 +244,7 @@ func printSearchTermsOverview(w io.StringWriter, searchTerms []goappleads.Search
 	w.WriteString("\n")
 }
 
-func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.SearchTermRow, n int, showNegativeKeywords bool, keywordsDB *goappleads.KeywordCSVDB, config goappleads.Config) {
+func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.SearchTermRow, n int, showNegativeKeywords, showPaused bool, keywordsDB *goappleads.KeywordCSVDB, config goappleads.Config) {
 	fmtx.HeaderTo(w, "SEARCH TERMS — TOP PERFORMERS (promote to [exact] keyword)")
 	stBase := computeSearchTermBaselines(searchTerms)
 	byTerm := aggregateSearchTerms(searchTerms)
@@ -308,14 +336,36 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 
 		campNames := make([]string, 0, len(item.data.Campaigns))
 		for cid := range item.data.Campaigns {
-			campNames = append(campNames, config.GetCampaign(cid).Name)
+			campaign := config.GetCampaign(cid)
+			campNames = append(campNames, campaign.Name)
 		}
 		sort.Strings(campNames)
+
 		agNames := make([]string, 0, len(item.data.AdGroups))
 		for agid := range item.data.AdGroups {
-			agNames = append(agNames, config.GetAdGroup(agid).Name)
+			ag := config.GetAdGroup(agid)
+			name := ag.Name
+			if ag.Status == goappleads.Paused {
+				name += " ⏸"
+			}
+			agNames = append(agNames, name)
 		}
 		sort.Strings(agNames)
+
+		paused := true
+		if !allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
+			paused = false
+		}
+		if !allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...) {
+			paused = false
+		}
+
+		if paused {
+			if !showPaused {
+				continue
+			}
+			action = fmtx.DimS("paused")
+		}
 
 		tw.WriteRow(
 			fmt.Sprintf("%d.", i+1),
@@ -359,7 +409,7 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 	w.WriteString("\n")
 }
 
-func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goappleads.SearchTermRow, n int, keywordsDB *goappleads.KeywordCSVDB, config goappleads.Config) {
+func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goappleads.SearchTermRow, n int, showPaused bool, keywordsDB *goappleads.KeywordCSVDB, config goappleads.Config) {
 	fmtx.HeaderTo(w, "SEARCH TERMS — NEW KEYWORD CANDIDATES (converting but not in keyword list)")
 	stBase := computeSearchTermBaselines(searchTerms)
 	byTerm := aggregateSearchTerms(searchTerms)
@@ -435,14 +485,27 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 			action = fmtx.DimS("monitor (1 inst)")
 		}
 
+		if allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
+			if !showPaused {
+				continue
+			}
+			action = fmtx.DimS("⏸ adgroup paused")
+		}
+
 		campNames := make([]string, 0, len(item.data.Campaigns))
 		for cid := range item.data.Campaigns {
 			campNames = append(campNames, config.GetCampaign(cid).Name)
 		}
 		sort.Strings(campNames)
+
 		agNames := make([]string, 0, len(item.data.AdGroups))
 		for agid := range item.data.AdGroups {
-			agNames = append(agNames, config.GetAdGroup(agid).Name)
+			ag := config.GetAdGroup(agid)
+			name := ag.Name
+			if ag.Status == goappleads.Paused {
+				name += " ⏸"
+			}
+			agNames = append(agNames, name)
 		}
 		sort.Strings(agNames)
 
@@ -463,7 +526,7 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 	w.WriteString("\n")
 }
 
-func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads.SearchTermRow, minSpend float64, showNegativeKeywords bool, keywordsDB *goappleads.KeywordCSVDB, config goappleads.Config) {
+func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads.SearchTermRow, minSpend float64, showNegativeKeywords, showPaused bool, keywordsDB *goappleads.KeywordCSVDB, config goappleads.Config) {
 	fmtx.HeaderTo(w, fmt.Sprintf("SEARCH TERMS — UNDERPERFORMERS (spend > $%.2f) — negate candidates", minSpend))
 	stBase := computeSearchTermBaselines(searchTerms)
 
@@ -514,7 +577,7 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 			{Header: "Campaign"},
 			{Header: "Ad Group"},
 			{Header: "Action", Width: 16},
-			{Header: "Impressions", Width: 10},
+			{Header: "Impressions", Width: 11},
 		},
 	}
 	w.WriteString("\n")
@@ -523,6 +586,22 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 
 	var highConf, medConf, lowConf []TermInfo
 	for _, item := range wasteful {
+		if !showPaused && allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
+			continue
+		}
+
+		paused := true
+		if !allAdGroupsPaused(config, slices.Collect(maps.Keys(item.data.AdGroups))...) {
+			paused = false
+		}
+		if !allCampaignsPaused(config, slices.Collect(maps.Keys(item.data.Campaigns))...) {
+			paused = false
+		}
+
+		if !showPaused && paused {
+			continue
+		}
+
 		pZero := pZeroInstalls(item.data.Taps, stBase.CVR)
 		conf := confidenceFromPZero(pZero).Format()
 		confidence := 1 - pZero
@@ -562,7 +641,7 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 			strings.Join(campNames, ", "),
 			strings.Join(agNames, ", "),
 			action,
-			fmtx.VolumeBar(item.data.Imp, maxImp, 8),
+			fmtx.VolumeBar(item.data.Imp, maxImp, 11),
 		)
 	}
 
@@ -596,7 +675,7 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 	w.WriteString("\n")
 }
 
-func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchTermInfo, n int, keywordsDB *goappleads.KeywordCSVDB, config goappleads.Config, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, showNegativeKeywords, showID bool) {
+func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchTermInfo, n int, keywordsDB *goappleads.KeywordCSVDB, config goappleads.Config, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, showNegativeKeywords, showID, showPaused bool) {
 	fmtx.HeaderTo(w, "SEARCH TERM IMPRESSION SHARE — TOP TERMS")
 	if len(rows) == 0 {
 		w.WriteString(" no data\n")
@@ -807,11 +886,9 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 			}
 		}
 
-		goodPerf := cvrRatio >= 1.2 || (cpiRatio > 0 && cpiRatio <= 0.8)
-		badPerf := (cvrRatio > 0 && cvrRatio < 0.8) && (cpiRatio == 0 || cpiRatio > 1.2)
-
 		// cross-reference with existing keywords for this country's campaign(s)
-		var hasExact, hasBroad, hasExactPaused, hasBroadPaused, hasNegative bool
+		var hasExact, hasBroad bool
+		var isAllPaused, isAllNegative bool = true, true
 		var keywordIDs []goappleads.KeywordID
 		if campaignIDs, ok := campaignsByCountry[e.key.Country]; ok {
 			campSet := make(map[goappleads.CampaignID]struct{}, len(campaignIDs))
@@ -824,28 +901,34 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 				}
 
 				keywordIDs = append(keywordIDs, kw.ID)
-				hasNegative = hasNegative || kw.IsNegative
+
+				if !kw.IsNegative {
+					isAllNegative = false
+				}
+
+				adgroup := config.GetAdGroup(kw.AdGroupID)
+				campaign := config.GetCampaign(kw.CampaignID)
+
+				paused := kw.Status == goappleads.Paused || kw.Status == goappleads.Deleted || adgroup.Status == goappleads.Paused || campaign.Status == goappleads.Paused
+				if !paused {
+					isAllPaused = false
+				}
 
 				switch kw.MatchType {
 				case goappleads.Exact:
 					hasExact = true
-					if kw.Status == goappleads.Paused || kw.Status == goappleads.Deleted {
-						hasExactPaused = true
-					}
 				case goappleads.Broad:
 					hasBroad = true
-					if kw.Status == goappleads.Paused || kw.Status == goappleads.Deleted {
-						hasBroadPaused = true
-					}
 				}
 			}
 		}
 
-		if hasNegative && !showNegativeKeywords {
+		if !showNegativeKeywords && isAllNegative {
 			continue
 		}
-
-		hasActive := hasExact || hasBroad
+		if !showPaused && isAllPaused {
+			continue
+		}
 
 		existStr := "-"
 		if hasExact || hasBroad {
@@ -863,32 +946,34 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 		}
 		existStr = fmtx.DimS(existStr)
 
+		goodPerf := cvrRatio >= 1.2 || (cpiRatio > 0 && cpiRatio <= 0.8)
+		badPerf := (cvrRatio > 0 && cvrRatio < 0.8) && (cpiRatio == 0 || cpiRatio > 1.2)
 		confidence := confidenceFromDaysImpressions(a.Days, a.Impressions)
 
 		actionStr := fmtx.DimS("monitor")
 		if confidence >= 0.75 {
 			switch {
-			case (hasExactPaused || hasBroadPaused) && !hasActive:
+			case isAllPaused && goodPerf:
 				actionStr = fmtx.YellowS("unpause")
-			case !hasActive && e.avgShare < 0.3 && a.Rank <= 3 && a.SearchPopularity >= 3:
+			case (hasExact || hasBroad) && e.avgShare < 0.3 && a.Rank <= 3 && a.SearchPopularity >= 3:
 				if badPerf {
 					actionStr = fmtx.YellowS("add?") // opportunity but converting poorly
 				} else {
 					actionStr = fmtx.GreenS("add")
 				}
-			case hasActive && e.avgShare < 0.3 && a.Rank <= 3 && a.SearchPopularity >= 3:
+			case (hasExact || hasBroad) && e.avgShare < 0.3 && a.Rank <= 3 && a.SearchPopularity >= 3:
 				if badPerf {
 					actionStr = fmtx.YellowS("raise bid") // be cautious — not converting well
 				} else {
 					actionStr = fmtx.GreenS("raise bid++")
 				}
-			case e.avgShare >= 0.5:
+			case (hasExact || hasBroad) && e.avgShare >= 0.5:
 				if badPerf {
 					actionStr = fmtx.RedS("lower bid")
 				} else {
 					actionStr = fmtx.BlueS("hold bid")
 				}
-			case hasActive && a.Rank <= 3:
+			case (hasExact || hasBroad) && a.Rank <= 3:
 				if goodPerf {
 					actionStr = fmtx.GreenS("raise bid")
 				} else if badPerf {
@@ -906,7 +991,7 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 			rankColored,
 			impShareColored,
 			strconv.Itoa(a.Impressions),
-			fmtx.VolumeBar(a.Impressions, maxImp, 10),
+			fmtx.VolumeBar(a.Impressions, maxImp, 11),
 			strconv.Itoa(e.potential),
 			strconv.FormatFloat(a.Spend, 'f', 2, 64),
 			cpiStr,
@@ -932,7 +1017,7 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 
 		if showNegativeKeywords {
 			negS := ""
-			if hasNegative {
+			if isAllNegative {
 				negS = fmtx.DimS("neg")
 			}
 			row = append(row, negS)
@@ -959,7 +1044,7 @@ func Run(args []string) {
 		keywordStatsCSV               string
 		searchTermStatsCSV            string
 		searchTermInfoCSV             string
-		showID                        bool
+		showID, showPaused            bool
 		showNegativeKeywords          bool
 		minSpend                      float64
 		topN                          int
@@ -976,6 +1061,7 @@ func Run(args []string) {
 	flag.StringVar(&searchTermInfoCSV, "search_term_info_csv", "data/apple_ads_search_term_impression_share_by_day.csv", "path to search term impression share by day CSV")
 	flag.BoolVar(&showNegativeKeywords, "negative-keywords", false, "show negative keywords")
 	flag.BoolVar(&showID, "id", false, "show IDs")
+	flag.BoolVar(&showPaused, "paused", false, "include paused keywords, adgroups, campaigns")
 	flag.Float64Var(&minSpend, "min-spend", 0.40, "min spend threshold for wasteful search terms")
 	flag.IntVar(&topN, "top-n", 300, "number of top search terms to show")
 	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
@@ -1047,8 +1133,8 @@ func Run(args []string) {
 	w := os.Stdout
 
 	printSearchTermsOverview(w, searchTerms)
-	printSearchTermsTopPerformers(w, searchTerms, topN, showNegativeKeywords, keywordsDB, *config)
-	printSearchTermsNewKeywordCandidates(w, searchTerms, topN, keywordsDB, *config)
-	printSearchTermsUnderperformers(w, searchTerms, minSpend, showNegativeKeywords, keywordsDB, *config)
-	printSearchTermImpressionShare(w, searchTermInfo, topN, keywordsDB, *config, baselines, showNegativeKeywords, showID)
+	printSearchTermsTopPerformers(w, searchTerms, topN, showNegativeKeywords, showPaused, keywordsDB, *config)
+	printSearchTermsNewKeywordCandidates(w, searchTerms, topN, showPaused, keywordsDB, *config)
+	printSearchTermsUnderperformers(w, searchTerms, minSpend, showNegativeKeywords, showPaused, keywordsDB, *config)
+	printSearchTermImpressionShare(w, searchTermInfo, topN, keywordsDB, *config, baselines, showNegativeKeywords, showID, showPaused)
 }
