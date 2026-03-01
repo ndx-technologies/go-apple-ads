@@ -1,4 +1,4 @@
-package main
+package appleadsgetupdatecommandscsv
 
 import (
 	"flag"
@@ -18,13 +18,16 @@ func campaignKeywordsNegativePageURL(appID string, campaignID goappleads.Campaig
 	return "https://app-ads.apple.com/cm/app/" + appID + "/report/campaign/" + campaignID.String() + "?tab=1&subTab=2"
 }
 
-func main() {
+const DocShort string = "get update commands CSV to apply to Apple Ads"
+
+func Run(args []string) {
+	flag := flag.NewFlagSet("get update-commands-csv", flag.ExitOnError)
 	var fromPath, toPath, outPath, appID string
 	flag.StringVar(&appID, "app-id", "", "app id for apple-ads")
 	flag.StringVar(&fromPath, "from", "", "dir for apple-ads")
 	flag.StringVar(&toPath, "to", "", "dir for apple-ads")
 	flag.StringVar(&outPath, "out", "", "dir for commands")
-	flag.Parse()
+	flag.Parse(args)
 
 	if fromPath == "" || toPath == "" || outPath == "" || appID == "" {
 		flag.Usage()

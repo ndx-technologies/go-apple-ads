@@ -7,5 +7,5 @@ Use this toolkit to setup your AI-driven Apple Ads GitOps.
 
 - `apple-ads/config.json` — all your config is here, campaigns, adgroups, creatives
 - `apple-ads/keywords/*.csv`
-- setup apple ads custom reports. run `apple_ads_merge_csv` to merge them
-- after updates, run `apple_ads_get_update_commands_csv` to generate commands CSV file and upload it to Apple
+- setup apple ads custom reports. run `apple-ads merge_csv` to merge them
+- after updates to keywords files run `apple-ads get update-commands-csv` to generate commands CSV file and upload it in Apple

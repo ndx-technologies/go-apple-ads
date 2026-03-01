@@ -1,4 +1,4 @@
-package main
+package appleadsmergecsv
 
 import (
 	"bufio"
@@ -134,14 +134,17 @@ func (m metadata) Write(w io.StringWriter) {
 	}
 }
 
-func main() {
+const DocShort string = "merge Apple Ads Insights CSV files "
+
+func Run(args []string) {
+	flag := flag.NewFlagSet("merge-csv", flag.ExitOnError)
 	var (
 		folder            string
 		groupByColumnsStr string
 	)
 	flag.StringVar(&folder, "path", "", "path to folder with Apple Ads CSV files")
 	flag.StringVar(&groupByColumnsStr, "group-by", "", "comma-separated list of columns to group by")
-	flag.Parse()
+	flag.Parse(args)
 
 	groupByColumn := make(map[string]bool)
 	for col := range strings.SplitSeq(groupByColumnsStr, ",") {

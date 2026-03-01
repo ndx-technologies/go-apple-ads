@@ -1,4 +1,4 @@
-package main
+package appleadsanalysiskeywordlanguagemismatch
 
 import (
 	"flag"
@@ -285,6 +285,7 @@ func printLanguageMismatchAnalysis(w io.StringWriter, entries []MismatchEntry, s
 	w.WriteString("\n")
 }
 
+const DocShort string = "detect foreign-script keywords in non-native markets"
 const doc string = `
 Language Mismatch — foreign-script keywords in non-native markets.
 
@@ -292,7 +293,8 @@ Currency: USD
 
 `
 
-func main() {
+func Run(args []string) {
+	flag := flag.NewFlagSet("analyse keywords language-mismatch", flag.ExitOnError)
 	var (
 		applePath                     string
 		keywordStatsCSV               string
@@ -302,7 +304,7 @@ func main() {
 		from, until                   time.Time
 	)
 	flag.Usage = func() {
-		flag.CommandLine.Output().Write([]byte(doc))
+		flag.Output().Write([]byte(doc))
 		flag.PrintDefaults()
 	}
 	flag.StringVar(&applePath, "data", "apple-ads", "path to dir with config.json and keywords CSVs")
@@ -314,7 +316,7 @@ func main() {
 	flag.BoolVar(&showID, "id", false, "show IDs")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
 	flag.Func("until", "until UTC day start (e.g. 2025-12-31)", timex.TimeParserWithFormat(&until, time.DateOnly))
-	flag.Parse()
+	flag.Parse(args)
 
 	config, keywordsDB, err := goappleads.Load(applePath)
 	if err != nil {

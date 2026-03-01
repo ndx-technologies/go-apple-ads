@@ -1,4 +1,4 @@
-package main
+package appleadsanalysiskeywordcannibalisation
 
 import (
 	"flag"
@@ -357,9 +357,11 @@ func printCannibalizationAnalysis(
 	w.WriteString("\n")
 }
 
+const DocShort string = "detect collision of keywords"
 const doc string = "Keyword Cannibalisation is when the same keyword appears in multiple ad groups within the same campaign.\n\n"
 
-func main() {
+func Run(args []string) {
+	flag := flag.NewFlagSet("analyse keywords cannibalisation", flag.ExitOnError)
 	var (
 		applePath                     string
 		keywordStatsCSV               string
@@ -369,7 +371,7 @@ func main() {
 		from, until                   time.Time
 	)
 	flag.Usage = func() {
-		flag.CommandLine.Output().Write([]byte(doc))
+		flag.Output().Write([]byte(doc))
 		flag.PrintDefaults()
 	}
 	flag.StringVar(&applePath, "data", "apple-ads", "path to dir with config.json and keywords CSVs")
@@ -382,7 +384,7 @@ func main() {
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
 	flag.Func("until", "until UTC day start (e.g. 2025-12-31)", timex.TimeParserWithFormat(&until, time.DateOnly))
-	flag.Parse()
+	flag.Parse(args)
 
 	config, keywordsDB, err := goappleads.Load(applePath)
 	if err != nil {

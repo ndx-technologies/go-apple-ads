@@ -1,4 +1,4 @@
-package main
+package appleadstimeline
 
 import (
 	"flag"
@@ -15,9 +15,10 @@ import (
 	"github.com/ndx-technologies/timex"
 )
 
+const DocShort string = "daily performance"
 const doc string = "Apple Ads Timeline of daily performance\n\n"
 
-func main() {
+func Run(args []string) {
 	var (
 		applePath                                    string
 		keywordStatsCSV                              string
@@ -25,8 +26,11 @@ func main() {
 		campaignIDsStr, adGroupIDsStr, keywordsIDStr string
 		from, until                                  time.Time
 	)
+
+	flag := flag.NewFlagSet("build", flag.ExitOnError)
+
 	flag.Usage = func() {
-		flag.CommandLine.Output().Write([]byte(doc))
+		flag.Output().Write([]byte(doc))
 		flag.PrintDefaults()
 	}
 	flag.StringVar(&applePath, "apple", "apple-ads", "path to apple ads db")
@@ -38,7 +42,7 @@ func main() {
 	flag.StringVar(&keywordsIDStr, "keyword-ids", "", "comma-separated list of keyword IDs to keep")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
 	flag.Func("until", "until UTC day start (e.g. 2025-12-31)", timex.TimeParserWithFormat(&until, time.DateOnly))
-	flag.Parse()
+	flag.Parse(args)
 
 	var (
 		keepCampaignIDs map[goappleads.CampaignID]bool

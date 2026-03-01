@@ -1,4 +1,4 @@
-package main
+package appleadsanalysiscampaigns
 
 import (
 	"flag"
@@ -102,9 +102,11 @@ func printBaselines(w io.StringWriter, showID bool, baselines map[goappleads.Cam
 	w.WriteString("\n")
 }
 
+const DocShort string = "campaigns stats (CPI, CVR, CTR, Installs, Spend, ...)"
 const doc string = "Apple Ads Campaigns Analysis — stats\n\n"
 
-func main() {
+func Run(args []string) {
+	flag := flag.NewFlagSet("analyse campaigns", flag.ExitOnError)
 	var (
 		applePath        string
 		keywordStatsCSV  string
@@ -114,7 +116,7 @@ func main() {
 		from, until      time.Time
 	)
 	flag.Usage = func() {
-		flag.CommandLine.Output().Write([]byte(doc))
+		flag.Output().Write([]byte(doc))
 		flag.PrintDefaults()
 	}
 	flag.StringVar(&applePath, "apple_path", "apple-ads", "path to apple ads dir")
@@ -125,7 +127,7 @@ func main() {
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
 	flag.Func("until", "until UTC day start (e.g. 2025-12-31)", timex.TimeParserWithFormat(&until, time.DateOnly))
-	flag.Parse()
+	flag.Parse(args)
 
 	config, _, err := goappleads.Load(applePath)
 	if err != nil {
