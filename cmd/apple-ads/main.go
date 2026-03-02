@@ -10,6 +10,7 @@ import (
 	appleadsanalysisadgroups "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_adgroups"
 	appleadsanalysiscampaigns "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_campaigns"
 	appleadsanalysiskeywordcannibalisation "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_keyword_cannibalisation"
+	appleadsanalysiskeyworddiscovery "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_keyword_discovery"
 	appleadsanalysiskeywordlanguagemismatch "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_keyword_language_mismatch"
 	appleadsanalysiskeywords "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_keywords"
 	appleadsanalysissearchterms "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_search_terms"
@@ -37,6 +38,7 @@ var commands = map[string]CommandInfo{
 	"analyse adgroups":                   {DocShort: appleadsanalysisadgroups.DocShort, Run: appleadsanalysisadgroups.Run},
 	"analyse keywords":                   {DocShort: appleadsanalysiskeywords.DocShort, Run: appleadsanalysiskeywords.Run},
 	"analyse searchterms":                {DocShort: appleadsanalysissearchterms.DocShort, Run: appleadsanalysissearchterms.Run},
+	"analyse keywords discovery":         {DocShort: appleadsanalysiskeyworddiscovery.DocShort, Run: appleadsanalysiskeyworddiscovery.Run},
 	"analyse keywords cannibalisation":   {DocShort: appleadsanalysiskeywordcannibalisation.DocShort, Run: appleadsanalysiskeywordcannibalisation.Run},
 	"analyse keywords language-mismatch": {DocShort: appleadsanalysiskeywordlanguagemismatch.DocShort, Run: appleadsanalysiskeywordlanguagemismatch.Run},
 }
@@ -58,21 +60,17 @@ func main() {
 	}
 	flag.Parse()
 
-	cmd, rest, err := route(flag.Args(), cmdNames)
-	if err != nil {
+	cmd, rest := route(flag.Args(), cmdNames)
+	if cmd == "" {
 		log.Fatal("unknown command, use -h for help")
 	}
 
 	commands[cmd].Run(rest)
 }
 
-type ErrUnknownCommand struct{}
-
-func (e ErrUnknownCommand) Error() string { return "unknown command" }
-
-func route(args []string, commands []string) (string, []string, error) {
+func route(args []string, commands []string) (string, []string) {
 	if len(args) == 0 {
-		return "", nil, ErrUnknownCommand{}
+		return "", nil
 	}
 	bestIdx := -1
 	bestLen := 0
@@ -88,10 +86,10 @@ func route(args []string, commands []string) (string, []string, error) {
 		}
 	}
 	if bestIdx < 0 {
-		return "", nil, ErrUnknownCommand{}
+		return "", nil
 	}
 	if len(bestRest) > 0 && !strings.HasPrefix(bestRest[0], "-") {
-		return "", nil, ErrUnknownCommand{}
+		return "", nil
 	}
-	return commands[bestIdx], bestRest, nil
+	return commands[bestIdx], bestRest
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -66,8 +65,8 @@ func TestRoute(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
-			if cmd, rest, err := route(tt.args, commands); cmd != tt.cmd || !slices.Equal(rest, tt.rest) || err != nil {
-				t.Error(tt, cmd, rest, err)
+			if cmd, rest := route(tt.args, commands); cmd != tt.cmd || !slices.Equal(rest, tt.rest) {
+				t.Error(tt, cmd, rest)
 			}
 		})
 	}
@@ -84,9 +83,8 @@ func TestRoute(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(strings.Join(tt, " "), func(t *testing.T) {
-				_, _, err := route(tt, commands)
-				if !errors.Is(err, ErrUnknownCommand{}) {
-					t.Error("no error")
+				if cmd, _ := route(tt, commands); cmd != "" {
+					t.Error("expected unknown command, got", cmd)
 				}
 			})
 		}
