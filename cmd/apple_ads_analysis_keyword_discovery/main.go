@@ -301,9 +301,9 @@ func Run(args []string) {
 		}
 		numKeywords := numBroad + numExact
 
-		w.WriteString(fmtx.GreenS("ok") + " each apple ads broad keyword(" + strconv.Itoa(numBroad) + "/" + strconv.Itoa(numKeywords) + ") is only in discovery campaign(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ")\n")
-		w.WriteString(fmtx.GreenS("ok") + " each apple ads exact keyword(" + strconv.Itoa(numExact) + "/" + strconv.Itoa(numKeywords) + ") has corresponding exact negative in discovery campaign(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ")\n")
-		w.WriteString(fmtx.GreenS("ok") + " each of discovery campaigns(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ") contains only broad keywords(" + strconv.Itoa(numBroadInDiscovery) + "/" + strconv.Itoa(numBroad) + ")\n")
+		w.WriteString(fmtx.GreenS("ok") + " each broad keyword(" + strconv.Itoa(numBroad) + "/" + strconv.Itoa(numKeywords) + ") is only in discovery campaign(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ")\n")
+		w.WriteString(fmtx.GreenS("ok") + " each exact keyword(" + strconv.Itoa(numExact) + "/" + strconv.Itoa(numKeywords) + ") has corresponding exact negative in discovery campaign(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ")\n")
+		w.WriteString(fmtx.GreenS("ok") + " each discovery campaign(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ") contains only broad keywords(" + strconv.Itoa(numBroadInDiscovery) + "/" + strconv.Itoa(numBroad) + ")\n")
 		return
 	}
 

@@ -435,7 +435,7 @@ func Run(args []string) {
 	w := os.Stdout
 
 	if len(groups) == 0 {
-		w.WriteString(fmtx.GreenS("ok") + " each apple ads keyword(num=" + strconv.Itoa(len(keywordsDB.Keywords)) + ") appears at most once per campaign(num=" + strconv.Itoa(len(config.Campaigns)) + ")\n")
+		w.WriteString(fmtx.GreenS("ok") + " each keyword(num=" + strconv.Itoa(len(keywordsDB.Keywords)) + ") appears at most once per campaign(num=" + strconv.Itoa(len(config.Campaigns)) + ")\n")
 		return
 	}
 
