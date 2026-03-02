@@ -4,8 +4,8 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"math/rand"
 	"strconv"
+	"sync/atomic"
 )
 
 type KeywordInfo struct {
@@ -47,9 +47,13 @@ func (s KeywordID) IsZero() bool { return s == "" }
 
 func (s KeywordID) String() string { return string(s) }
 
+var newKeywordIDCounter atomic.Int64
+
 // NewKeywordID generates local version of keyword ID.
 // Refer to Apple API to get real keywordID.
-func NewKeywordID() KeywordID { return KeywordID("tmp-" + strconv.Itoa(int(rand.Int31n(1000000)))) }
+func NewKeywordID() KeywordID {
+	return KeywordID("tmp-" + strconv.FormatInt(newKeywordIDCounter.Add(1), 10))
+}
 
 type MatchType string
 
