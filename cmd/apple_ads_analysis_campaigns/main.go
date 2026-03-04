@@ -39,7 +39,7 @@ func printBaselines(w io.StringWriter, showID, showPaused bool, baselines map[go
 		Indent: "  ",
 		Out:    w,
 		Cols: []fmtx.TablCol{
-			{Header: "Campaign", Width: 20},
+			{Header: "Campaign", Width: 32},
 			{Header: "CPI", Width: 7, Alignment: fmtx.AlignRight},
 			{Header: "CVR", Width: 7, Alignment: fmtx.AlignRight},
 			{Header: "CTR", Width: 7, Alignment: fmtx.AlignRight},
