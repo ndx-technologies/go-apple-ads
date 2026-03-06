@@ -234,7 +234,7 @@ func Run(args []string) {
 		flag.Output().Write([]byte(doc))
 		flag.PrintDefaults()
 	}
-	flag.StringVar(&applePath, "data", "apple-ads", "path to dir with config.json and keywords CSVs")
+	flag.StringVar(&applePath, "apple-path", "apple-ads", "path to dir with config.json and keywords CSVs")
 	flag.BoolVar(&showID, "id", false, "show IDs")
 	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
 	flag.BoolVar(&verbose, "v", false, "verbose: print full table; by default prints one-line summary")

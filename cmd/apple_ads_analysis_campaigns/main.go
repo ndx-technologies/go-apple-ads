@@ -124,9 +124,9 @@ func Run(args []string) {
 		flag.Output().Write([]byte(doc))
 		flag.PrintDefaults()
 	}
-	flag.StringVar(&applePath, "apple_path", "apple-ads", "path to apple ads dir")
-	flag.StringVar(&keywordStatsCSV, "keyword_stats_csv", "data/apple_ads_search_keywords_by_day.csv", "path to keyword stats by day CSV")
-	flag.StringVar(&campaignStatsCSV, "campaign_stats_csv", "data/apple_ads_campaign_stats_by_day.csv", "path to campaign stats by day CSV")
+	flag.StringVar(&applePath, "apple-path", "apple-ads", "path to apple ads dir")
+	flag.StringVar(&keywordStatsCSV, "keyword-stats-csv", "data/apple_ads_search_keywords_by_day.csv", "path to keyword stats by day CSV")
+	flag.StringVar(&campaignStatsCSV, "campaign-stats-csv", "data/apple_ads_campaign_stats_by_day.csv", "path to campaign stats by day CSV")
 	flag.BoolVar(&showID, "id", false, "show IDs")
 	flag.BoolVar(&showPaused, "paused", false, "include paused campaigns")
 	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
