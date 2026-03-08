@@ -307,10 +307,10 @@ func Run(args []string) {
 		return
 	}
 
-	if !verbose {
+	if verbose {
+		printDiscoveryAnalysis(w, *config, showID, groups)
+	} else {
 		w.WriteString(fmtx.RedS("error") + " " + strconv.Itoa(len(groups)) + " keyword discovery conflicts found (run with -v for details)\n")
-		return
 	}
-
-	printDiscoveryAnalysis(w, *config, showID, groups)
+	os.Exit(1)
 }

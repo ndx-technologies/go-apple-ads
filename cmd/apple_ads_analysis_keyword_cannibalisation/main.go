@@ -439,10 +439,10 @@ func Run(args []string) {
 		return
 	}
 
-	if !verbose {
+	if verbose {
+		printCannibalizationAnalysis(w, *config, keywordsDB, showID, showPaused, groups)
+	} else {
 		w.WriteString(fmtx.RedS("error") + " " + strconv.Itoa(len(groups)) + " keyword cannibalisation groups found (run with -v for details)\n")
-		return
 	}
-
-	printCannibalizationAnalysis(w, *config, keywordsDB, showID, showPaused, groups)
+	os.Exit(1)
 }

@@ -363,22 +363,25 @@ func Run(args []string) {
 		return
 	}
 
-	if !verbose {
-		var numRequiresAction int
-		for _, e := range entries {
-			if e.Rec.RequiresAction() {
-				numRequiresAction++
-			}
+	var numRequiresAction int
+	for _, e := range entries {
+		if e.Rec.RequiresAction() {
+			numRequiresAction++
 		}
+	}
+	if numRequiresAction == 0 {
+		w.WriteString(fmtx.GreenS("ok") + " keywords with language mismatch found, but none require action\n")
+		return
+	}
 
+	if verbose {
+		printLanguageMismatchAnalysis(w, entries, showID)
+	} else {
 		numRequiresActionStr := strconv.Itoa(numRequiresAction)
 		if numRequiresAction > 0 {
 			numRequiresActionStr = fmtx.RedS(numRequiresActionStr)
 		}
-
 		w.WriteString(fmtx.RedS("error") + " " + strconv.Itoa(len(entries)) + " keywords with foreign-script mismatch found, " + numRequiresActionStr + " require action (run with -v for details)\n")
-		return
 	}
-
-	printLanguageMismatchAnalysis(w, entries, showID)
+	os.Exit(1)
 }
