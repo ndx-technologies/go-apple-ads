@@ -370,7 +370,7 @@ func Run(args []string) {
 		}
 	}
 	if numRequiresAction == 0 {
-		w.WriteString(fmtx.GreenS("ok") + " keywords with language mismatch found, but none require action\n")
+		w.WriteString(fmtx.GreenS("ok") + " keywords(" + strconv.Itoa(len(entries)) + "/" + strconv.Itoa(len(keywordsDB.Keywords)) + ") with language mismatch found, but none require action\n")
 		return
 	}
 
