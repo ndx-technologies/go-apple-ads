@@ -1,4 +1,4 @@
-package goappleads
+package appleadsanalysiskeywordlanguagemismatch
 
 import (
 	"maps"

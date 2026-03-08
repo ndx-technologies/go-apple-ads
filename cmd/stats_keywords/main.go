@@ -1,4 +1,4 @@
-package appleadsanalysiskeywords
+package statskeywords
 
 import (
 	"flag"

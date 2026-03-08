@@ -101,7 +101,7 @@ func (a *AppleAdsKeywordsLanguageMismatchAnalyzer) Finalize() []MismatchEntry {
 		if campaign.IsZero() {
 			continue
 		}
-		unexpected := goappleads.KeywordUnexpectedScripts(ki.Keyword, goappleads.CountryAllowedScripts(campaign.Countries))
+		unexpected := KeywordUnexpectedScripts(ki.Keyword, CountryAllowedScripts(campaign.Countries))
 		if len(unexpected) == 0 {
 			continue
 		}

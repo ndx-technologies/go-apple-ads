@@ -7,16 +7,16 @@ import (
 	"slices"
 	"strings"
 
-	appleadsanalysisadgroups "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_adgroups"
-	appleadsanalysiscampaigns "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_campaigns"
-	appleadsanalysiskeywordcannibalisation "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_keyword_cannibalisation"
-	appleadsanalysiskeyworddiscovery "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_keyword_discovery"
-	appleadsanalysiskeywordlanguagemismatch "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_keyword_language_mismatch"
-	appleadsanalysiskeywords "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_keywords"
-	appleadsanalysissearchterms "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_analysis_search_terms"
+	analysiskeywordcannibalisation "github.com/ndx-technologies/go-apple-ads/analysis/keyword_cannibalisation"
+	analysiskeyworddiscovery "github.com/ndx-technologies/go-apple-ads/analysis/keyword_discovery"
+	analysiskeywordlanguagemismatch "github.com/ndx-technologies/go-apple-ads/analysis/keyword_language_mismatch"
 	appleadsgetupdatecommandscsv "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_get_update_commands_csv"
 	appleadsmergecsv "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_merge_csv"
 	appleadstimeline "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_timeline"
+	statsadgroups "github.com/ndx-technologies/go-apple-ads/cmd/stats_adgroups"
+	statscampaigns "github.com/ndx-technologies/go-apple-ads/cmd/stats_campaigns"
+	statskeywords "github.com/ndx-technologies/go-apple-ads/cmd/stats_keywords"
+	statssearchterms "github.com/ndx-technologies/go-apple-ads/cmd/stats_searchterms"
 )
 
 type CommandInfo struct {
@@ -34,13 +34,13 @@ var commands = map[string]CommandInfo{
 	"timeline":                           {DocShort: appleadstimeline.DocShort, Run: appleadstimeline.Run},
 	"merge-csv":                          {DocShort: appleadsmergecsv.DocShort, Run: appleadsmergecsv.Run},
 	"get update-commands-csv":            {DocShort: appleadsgetupdatecommandscsv.DocShort, Run: appleadsgetupdatecommandscsv.Run},
-	"analyse campaigns":                  {DocShort: appleadsanalysiscampaigns.DocShort, Run: appleadsanalysiscampaigns.Run},
-	"analyse adgroups":                   {DocShort: appleadsanalysisadgroups.DocShort, Run: appleadsanalysisadgroups.Run},
-	"analyse keywords":                   {DocShort: appleadsanalysiskeywords.DocShort, Run: appleadsanalysiskeywords.Run},
-	"analyse searchterms":                {DocShort: appleadsanalysissearchterms.DocShort, Run: appleadsanalysissearchterms.Run},
-	"analyse keywords discovery":         {DocShort: appleadsanalysiskeyworddiscovery.DocShort, Run: appleadsanalysiskeyworddiscovery.Run},
-	"analyse keywords cannibalisation":   {DocShort: appleadsanalysiskeywordcannibalisation.DocShort, Run: appleadsanalysiskeywordcannibalisation.Run},
-	"analyse keywords language-mismatch": {DocShort: appleadsanalysiskeywordlanguagemismatch.DocShort, Run: appleadsanalysiskeywordlanguagemismatch.Run},
+	"stats campaigns":                    {DocShort: statscampaigns.DocShort, Run: statscampaigns.Run},
+	"stats adgroups":                     {DocShort: statsadgroups.DocShort, Run: statsadgroups.Run},
+	"stats keywords":                     {DocShort: statskeywords.DocShort, Run: statskeywords.Run},
+	"stats searchterms":                  {DocShort: statssearchterms.DocShort, Run: statssearchterms.Run},
+	"analyse keywords discovery":         {DocShort: analysiskeyworddiscovery.DocShort, Run: analysiskeyworddiscovery.Run},
+	"analyse keywords cannibalisation":   {DocShort: analysiskeywordcannibalisation.DocShort, Run: analysiskeywordcannibalisation.Run},
+	"analyse keywords language-mismatch": {DocShort: analysiskeywordlanguagemismatch.DocShort, Run: analysiskeywordlanguagemismatch.Run},
 }
 
 func main() {

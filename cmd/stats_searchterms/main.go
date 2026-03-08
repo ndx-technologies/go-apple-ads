@@ -1,4 +1,4 @@
-package appleadsanalysissearchterms
+package statssearchterms
 
 import (
 	"flag"
