@@ -1041,7 +1041,7 @@ func Run(args []string) {
 	flag.BoolVar(&showPaused, "paused", false, "include paused keywords, adgroups, campaigns")
 	flag.Float64Var(&minSpend, "min-spend", 0.40, "min spend threshold for wasteful search terms")
 	flag.IntVar(&topN, "top-n", 300, "number of top search terms to show")
-	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
+	flag.BoolVar(&fmtx.EnableColor, "color", os.Getenv("NO_COLOR") == "", "colorize output")
 	flag.StringVar(&countriesStr, "countries", "", "comma-separated list of countries (ISO 3166) to keep")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep (for searchterm impression share selects country of campaign)")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep (for searchterm impression share selects country of adgroup campaign)")

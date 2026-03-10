@@ -222,7 +222,7 @@ func Run(args []string) {
 	}
 	flag.StringVar(&applePath, "apple-path", "apple-ads", "path to dir with config.json and keywords CSVs")
 	flag.BoolVar(&showID, "id", false, "show IDs")
-	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
+	flag.BoolVar(&fmtx.EnableColor, "color", os.Getenv("NO_COLOR") == "", "colorize output")
 	flag.BoolVar(&verbose, "v", false, "verbose: print full table; by default prints one-line summary")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")

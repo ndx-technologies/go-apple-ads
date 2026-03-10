@@ -653,7 +653,7 @@ func Run(args []string) {
 	flag.BoolVar(&showPaused, "paused", false, "include paused keywords, adgroups, campaigns")
 	flag.Float64Var(&minSpend, "min-spend", 0.40, "min spend threshold for wasteful keywords")
 	flag.IntVar(&topN, "top-n", 300, "number of best/worst keywords to show")
-	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
+	flag.BoolVar(&fmtx.EnableColor, "color", os.Getenv("NO_COLOR") == "", "colorize output")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))

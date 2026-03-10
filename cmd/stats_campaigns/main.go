@@ -129,7 +129,7 @@ func Run(args []string) {
 	flag.StringVar(&campaignStatsCSV, "campaign-stats-csv", "data/apple_ads_campaign_stats_by_day.csv", "path to campaign stats by day CSV")
 	flag.BoolVar(&showID, "id", false, "show IDs")
 	flag.BoolVar(&showPaused, "paused", false, "include paused campaigns")
-	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
+	flag.BoolVar(&fmtx.EnableColor, "color", os.Getenv("NO_COLOR") == "", "colorize output")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
 	flag.Func("until", "until UTC day start (e.g. 2026-01-01)", timex.TimeParserWithFormat(&until, time.DateOnly))

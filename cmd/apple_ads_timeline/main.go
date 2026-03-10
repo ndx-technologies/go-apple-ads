@@ -36,7 +36,7 @@ func Run(args []string) {
 	flag.StringVar(&applePath, "apple-path", "apple-ads", "path to apple ads db")
 	flag.StringVar(&keywordStatsCSV, "keyword-stats-csv", "data/apple_ads_search_keywords_by_day.csv", "path to keyword stats by day CSV")
 	flag.StringVar(&campaignStatsCSV, "campaign-stats-csv", "data/apple_ads_campaign_stats_by_day.csv", "path to campaign stats by day CSV")
-	flag.BoolVar(&fmtx.EnableColor, "color", true, "colorize output")
+	flag.BoolVar(&fmtx.EnableColor, "color", os.Getenv("NO_COLOR") == "", "colorize output")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")
 	flag.StringVar(&keywordsIDStr, "keyword-ids", "", "comma-separated list of keyword IDs to keep")
