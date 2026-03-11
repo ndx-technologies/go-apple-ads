@@ -203,9 +203,9 @@ func printBestWorstKeywords(keywords []goappleads.KeywordRow, overall goappleads
 			{Header: "CVR"},
 			{Header: "CTR"},
 			{Header: "Conf"},
-			{Header: "Inst"},
-			{Header: "Taps"},
 			{Header: "Imp"},
+			{Header: "Taps"},
+			{Header: "Inst"},
 			{Header: "Installs", Width: 12},
 		},
 	}
@@ -264,9 +264,9 @@ func printKeywordRow(tw fmtx.TableWriter, i int, item KeywordStats, overall goap
 		fmt.Sprintf("%.1f%%", cvr*100),
 		fmt.Sprintf("%.2f%%", ctr*100),
 		confidenceFromPZero(pZeroInstalls(item.stats.Taps, overall.CVR)).Format(),
-		strconv.Itoa(item.stats.Inst),
-		strconv.Itoa(item.stats.Taps),
 		strconv.Itoa(item.stats.Imp),
+		strconv.Itoa(item.stats.Taps),
+		strconv.Itoa(item.stats.Inst),
 		fmtx.VolumeBar(item.stats.Inst, maxInst, 12),
 	}
 
