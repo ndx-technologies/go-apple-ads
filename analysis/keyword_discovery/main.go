@@ -12,6 +12,7 @@ import (
 
 	"github.com/ndx-technologies/fmtx"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
+	"github.com/ndx-technologies/go-apple-ads/analysis"
 	"github.com/ndx-technologies/timex"
 )
 
@@ -207,7 +208,7 @@ func printDiscoveryAnalysis(
 	w.WriteString("\n")
 }
 
-func Run(args []string) {
+func Run(args []string) (analysis.Info, error) {
 	flag := flag.NewFlagSet("analyse keywords discovery", flag.ExitOnError)
 	var (
 		applePath                     string
@@ -255,8 +256,6 @@ func Run(args []string) {
 
 	groups := analyzer.Finalize()
 
-	w := os.Stdout
-
 	if len(groups) == 0 {
 		var numCampaigns, numDiscoveryCampaigns int
 		for _, c := range config.Campaigns {
@@ -287,16 +286,40 @@ func Run(args []string) {
 		}
 		numKeywords := numBroad + numExact
 
-		w.WriteString(fmtx.GreenS("ok") + " each broad keyword(" + strconv.Itoa(numBroad) + "/" + strconv.Itoa(numKeywords) + ") is only in discovery campaign(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ")\n")
-		w.WriteString(fmtx.GreenS("ok") + " each exact keyword(" + strconv.Itoa(numExact) + "/" + strconv.Itoa(numKeywords) + ") has corresponding exact negative in discovery campaign(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ")\n")
-		w.WriteString(fmtx.GreenS("ok") + " each discovery campaign(" + strconv.Itoa(numDiscoveryCampaigns) + "/" + strconv.Itoa(numCampaigns) + ") contains only broad keywords(" + strconv.Itoa(numBroadInDiscovery) + "/" + strconv.Itoa(numBroad) + ")\n")
-		return
+		return analysis.Join(
+			InfoBroadKeywordInDiscoveryCampaign{NumBroad: numBroad, NumKeywords: numKeywords, NumDiscoveryCampaigns: numDiscoveryCampaigns, NumCampaigns: numCampaigns},
+			InfoExactKeywordNegativeInDiscoveryCampaign{NumExact: numExact, NumKeywords: numKeywords, NumDiscoveryCampaigns: numDiscoveryCampaigns, NumCampaigns: numCampaigns},
+			InfoDiscoveryCampaignBroadKeywordsOnly{NumDiscoveryCampaigns: numDiscoveryCampaigns, NumCampaigns: numCampaigns, NumBroadInDiscovery: numBroadInDiscovery, NumBroad: numBroad},
+		), nil
 	}
 
 	if verbose {
-		printDiscoveryAnalysis(w, *config, showID, groups)
-	} else {
-		w.WriteString(fmtx.RedS("error") + " " + strconv.Itoa(len(groups)) + " keyword discovery conflicts found (run with -v for details)\n")
+		printDiscoveryAnalysis(os.Stdout, *config, showID, groups)
 	}
-	os.Exit(1)
+
+	return nil, ErrKeywordDiscovery{NumConflicts: len(groups)}
+}
+
+type InfoBroadKeywordInDiscoveryCampaign struct{ NumBroad, NumKeywords, NumDiscoveryCampaigns, NumCampaigns int }
+
+func (s InfoBroadKeywordInDiscoveryCampaign) String() string {
+	return "each broad keyword(" + strconv.Itoa(s.NumBroad) + "/" + strconv.Itoa(s.NumKeywords) + ") is only in discovery campaign(" + strconv.Itoa(s.NumDiscoveryCampaigns) + "/" + strconv.Itoa(s.NumCampaigns) + ")"
+}
+
+type InfoExactKeywordNegativeInDiscoveryCampaign struct{ NumExact, NumKeywords, NumDiscoveryCampaigns, NumCampaigns int }
+
+func (s InfoExactKeywordNegativeInDiscoveryCampaign) String() string {
+	return "each exact keyword(" + strconv.Itoa(s.NumExact) + "/" + strconv.Itoa(s.NumKeywords) + ") has corresponding exact negative in discovery campaign(" + strconv.Itoa(s.NumDiscoveryCampaigns) + "/" + strconv.Itoa(s.NumCampaigns) + ")"
+}
+
+type InfoDiscoveryCampaignBroadKeywordsOnly struct{ NumDiscoveryCampaigns, NumCampaigns, NumBroadInDiscovery, NumBroad int }
+
+func (s InfoDiscoveryCampaignBroadKeywordsOnly) String() string {
+	return "each discovery campaign(" + strconv.Itoa(s.NumDiscoveryCampaigns) + "/" + strconv.Itoa(s.NumCampaigns) + ") contains only broad keywords(" + strconv.Itoa(s.NumBroadInDiscovery) + "/" + strconv.Itoa(s.NumBroad) + ")"
+}
+
+type ErrKeywordDiscovery struct{ NumConflicts int }
+
+func (e ErrKeywordDiscovery) Error() string {
+	return strconv.Itoa(e.NumConflicts) + " keyword discovery conflicts found (run with -v for details)"
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/ndx-technologies/fmtx"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
+	"github.com/ndx-technologies/go-apple-ads/analysis"
 	"github.com/ndx-technologies/iterx"
 	"github.com/ndx-technologies/timex"
 )
@@ -360,7 +361,7 @@ func printCannibalizationAnalysis(
 const DocShort string = "detect collision of keywords"
 const doc string = "Keyword Cannibalisation is when the same keyword appears in multiple ad groups within the same campaign.\n\n"
 
-func Run(args []string) {
+func Run(args []string) (analysis.Info, error) {
 	flag := flag.NewFlagSet("analyse keywords cannibalisation", flag.ExitOnError)
 	var (
 		applePath                     string
@@ -432,17 +433,25 @@ func Run(args []string) {
 
 	groups := analyzer.Finalize()
 
-	w := os.Stdout
-
 	if len(groups) == 0 {
-		w.WriteString(fmtx.GreenS("ok") + " each keyword(num=" + strconv.Itoa(len(keywordsDB.Keywords)) + ") appears at most once per campaign(num=" + strconv.Itoa(len(config.Campaigns)) + ")\n")
-		return
+		return InfoKeywordCanibalisation{NumKeywords: len(keywordsDB.Keywords), NumCampaigns: len(config.Campaigns)}, nil
 	}
 
 	if verbose {
-		printCannibalizationAnalysis(w, *config, keywordsDB, showID, showPaused, groups)
-	} else {
-		w.WriteString(fmtx.RedS("error") + " " + strconv.Itoa(len(groups)) + " keyword cannibalisation groups found (run with -v for details)\n")
+		printCannibalizationAnalysis(os.Stdout, *config, keywordsDB, showID, showPaused, groups)
 	}
-	os.Exit(1)
+
+	return nil, ErrKeywordCannibalisation{NumGroups: len(groups)}
+}
+
+type InfoKeywordCanibalisation struct{ NumKeywords, NumCampaigns int }
+
+func (s InfoKeywordCanibalisation) String() string {
+	return "each keyword(num=" + strconv.Itoa(s.NumKeywords) + ") appears at most once per campaign(num=" + strconv.Itoa(s.NumCampaigns) + ")"
+}
+
+type ErrKeywordCannibalisation struct{ NumGroups int }
+
+func (e ErrKeywordCannibalisation) Error() string {
+	return strconv.Itoa(e.NumGroups) + " keyword cannibalisation groups found (run with -v for details)"
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/ndx-technologies/fmtx"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
+	"github.com/ndx-technologies/go-apple-ads/analysis"
 	"github.com/ndx-technologies/iterx"
 	"github.com/ndx-technologies/timex"
 )
@@ -293,7 +294,7 @@ Currency: USD
 
 `
 
-func Run(args []string) {
+func Run(args []string) (analysis.Info, error) {
 	flag := flag.NewFlagSet("analyse keywords language-mismatch", flag.ExitOnError)
 	var (
 		applePath                     string
@@ -356,11 +357,8 @@ func Run(args []string) {
 
 	entries := analyzer.Finalize()
 
-	w := os.Stdout
-
 	if len(entries) == 0 {
-		w.WriteString(fmtx.GreenS("ok") + " no language mismatch keywords found\n")
-		return
+		return InfoKeywordLanguageMismatch{NumKeywords: len(keywordsDB.Keywords)}, nil
 	}
 
 	var numRequiresAction int
@@ -370,18 +368,27 @@ func Run(args []string) {
 		}
 	}
 	if numRequiresAction == 0 {
-		w.WriteString(fmtx.GreenS("ok") + " keywords(" + strconv.Itoa(len(entries)) + "/" + strconv.Itoa(len(keywordsDB.Keywords)) + ") with language mismatch found, but none require action\n")
-		return
+		return InfoKeywordLanguageMismatch{NumEntries: len(entries), NumKeywords: len(keywordsDB.Keywords)}, nil
 	}
 
 	if verbose {
-		printLanguageMismatchAnalysis(w, entries, showID)
-	} else {
-		numRequiresActionStr := strconv.Itoa(numRequiresAction)
-		if numRequiresAction > 0 {
-			numRequiresActionStr = fmtx.RedS(numRequiresActionStr)
-		}
-		w.WriteString(fmtx.RedS("error") + " " + strconv.Itoa(len(entries)) + " keywords with foreign-script mismatch found, " + numRequiresActionStr + " require action (run with -v for details)\n")
+		printLanguageMismatchAnalysis(os.Stdout, entries, showID)
 	}
-	os.Exit(1)
+
+	return nil, ErrKeywordLanguageMismatch{NumEntries: len(entries), NumRequireAction: numRequiresAction}
+}
+
+type InfoKeywordLanguageMismatch struct{ NumKeywords, NumEntries int }
+
+func (s InfoKeywordLanguageMismatch) String() string {
+	if s.NumEntries == 0 {
+		return "no language mismatch keywords found"
+	}
+	return "keywords(" + strconv.Itoa(s.NumEntries) + "/" + strconv.Itoa(s.NumKeywords) + ") with language mismatch found, but none require action"
+}
+
+type ErrKeywordLanguageMismatch struct{ NumEntries, NumRequireAction int }
+
+func (e ErrKeywordLanguageMismatch) Error() string {
+	return strconv.Itoa(e.NumEntries) + " keywords with foreign-script mismatch found, " + strconv.Itoa(e.NumRequireAction) + " require action (run with -v for details)"
 }

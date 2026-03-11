@@ -4,9 +4,12 @@ import (
 	"flag"
 	"log"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 
+	"github.com/ndx-technologies/fmtx"
+	"github.com/ndx-technologies/go-apple-ads/analysis"
 	analysiskeywordcannibalisation "github.com/ndx-technologies/go-apple-ads/analysis/keyword_cannibalisation"
 	analysiskeyworddiscovery "github.com/ndx-technologies/go-apple-ads/analysis/keyword_discovery"
 	analysiskeywordlanguagemismatch "github.com/ndx-technologies/go-apple-ads/analysis/keyword_language_mismatch"
@@ -38,9 +41,14 @@ var commands = map[string]CommandInfo{
 	"stats adgroups":                     {DocShort: statsadgroups.DocShort, Run: statsadgroups.Run},
 	"stats keywords":                     {DocShort: statskeywords.DocShort, Run: statskeywords.Run},
 	"stats searchterms":                  {DocShort: statssearchterms.DocShort, Run: statssearchterms.Run},
-	"analyse keywords discovery":         {DocShort: analysiskeyworddiscovery.DocShort, Run: analysiskeyworddiscovery.Run},
-	"analyse keywords cannibalisation":   {DocShort: analysiskeywordcannibalisation.DocShort, Run: analysiskeywordcannibalisation.Run},
-	"analyse keywords language-mismatch": {DocShort: analysiskeywordlanguagemismatch.DocShort, Run: analysiskeywordlanguagemismatch.Run},
+	"analyse keywords discovery":         {DocShort: analysiskeyworddiscovery.DocShort, Run: analyse(analysiskeyworddiscovery.Run)},
+	"analyse keywords cannibalisation":   {DocShort: analysiskeywordcannibalisation.DocShort, Run: analyse(analysiskeywordcannibalisation.Run)},
+	"analyse keywords language-mismatch": {DocShort: analysiskeywordlanguagemismatch.DocShort, Run: analyse(analysiskeywordlanguagemismatch.Run)},
+	"analyse": {DocShort: "run all analysers", Run: analyse(
+		analysiskeyworddiscovery.Run,
+		analysiskeywordcannibalisation.Run,
+		analysiskeywordlanguagemismatch.Run,
+	)},
 }
 
 func main() {
@@ -92,4 +100,30 @@ func route(args []string, commands []string) (string, []string) {
 		return "", nil
 	}
 	return commands[bestIdx], bestRest
+}
+
+func analyse(fs ...func(args []string) (analysis.Info, error)) func(args []string) {
+	return func(args []string) {
+		w := os.Stderr
+		hasError := false
+		for _, f := range fs {
+			info, err := f(args)
+			if err != nil {
+				w.WriteString(fmtx.RedS("error") + " " + err.Error() + "\n")
+				hasError = true
+			}
+			if info != nil {
+				if ci, ok := info.(analysis.CompositeInfo); ok {
+					for _, i := range ci.Infos {
+						w.WriteString(fmtx.GreenS("ok") + " " + i.String() + "\n")
+					}
+				} else {
+					w.WriteString(fmtx.GreenS("ok") + " " + info.String() + "\n")
+				}
+			}
+		}
+		if hasError {
+			os.Exit(1)
+		}
+	}
 }
