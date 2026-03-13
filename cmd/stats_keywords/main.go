@@ -713,7 +713,7 @@ func Run(args []string) {
 		if keepCountry != nil {
 			campaign := config.GetCampaign(e.CampaignID)
 			for _, country := range campaign.Countries {
-				if keepCountry[country] {
+				if !keepCountry[country] {
 					continue
 				}
 			}
