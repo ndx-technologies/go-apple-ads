@@ -542,7 +542,7 @@ func printBidAnalysis(keywords []goappleads.KeywordRow, config goappleads.Config
 	fmt.Println()
 }
 
-func printNonConvertingKeywords(stats []goappleads.KeywordRow, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB, showID, showPaused bool) {
+func printNonConvertingKeywords(stats []goappleads.KeywordRow, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB, showID, showPaused bool, keepCampaign map[CampaignID]bool, keepAdGroup map[AdGroupID]bool, keepCountry map[geo.Country]bool) {
 	fmtx.HeaderTo(os.Stdout, "KEYWORDS WITH NO IMPRESSIONS")
 
 	impressions := make(map[KeywordID]int)
@@ -555,6 +555,28 @@ func printNonConvertingKeywords(stats []goappleads.KeywordRow, config goappleads
 	noImpressionsCount := 0
 
 	for _, ki := range keywordsDB.Keywords {
+		if keepCampaign != nil && !keepCampaign[ki.CampaignID] {
+			continue
+		}
+		if keepAdGroup != nil && !keepAdGroup[ki.AdGroupID] {
+			continue
+		}
+		if keepCountry != nil {
+			campaign := config.GetCampaign(ki.CampaignID)
+			found := false
+			for _, country := range campaign.Countries {
+				if keepCountry[country] {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+		if !showPaused && isKeywordPaused(ki, config) {
+			continue
+		}
 		if isKeywordNegative(keywordsDB.GetKeywordsByText(ki.Keyword)) {
 			continue
 		}
@@ -589,6 +611,28 @@ func printNonConvertingKeywords(stats []goappleads.KeywordRow, config goappleads
 
 	count := 0
 	for _, ki := range keywordsDB.Keywords {
+		if keepCampaign != nil && !keepCampaign[ki.CampaignID] {
+			continue
+		}
+		if keepAdGroup != nil && !keepAdGroup[ki.AdGroupID] {
+			continue
+		}
+		if keepCountry != nil {
+			campaign := config.GetCampaign(ki.CampaignID)
+			found := false
+			for _, country := range campaign.Countries {
+				if keepCountry[country] {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+		if !showPaused && isKeywordPaused(ki, config) {
+			continue
+		}
 		if isKeywordNegative(keywordsDB.GetKeywordsByText(ki.Keyword)) {
 			continue
 		}
@@ -750,5 +794,5 @@ func Run(args []string) {
 	printBestWorstKeywords(keywordsStats, overall, topN, showNegativeKeywords, showID, showPaused, *config, keywordsDB)
 	printWastefulWithConfidence(keywordsStats, baselines, overall, minSpend, showNegativeKeywords, showID, showPaused, *config, keywordsDB)
 	printBidAnalysis(keywordsStats, *config, keywordsDB)
-	printNonConvertingKeywords(keywordsStats, *config, keywordsDB, showID, showPaused)
+	printNonConvertingKeywords(keywordsStats, *config, keywordsDB, showID, showPaused, keepCampaign, keepAdGroup, keepCountry)
 }
