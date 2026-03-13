@@ -29,14 +29,14 @@ jobs:
           GOEXPERIMENT: jsonv2
         run: |
           go build -o apple-ads ./cmd/apple-ads
-          apple-ads -h
-          apple-ads stats campaigns -h
-          apple-ads stats adgroups -h
-          apple-ads stats keywords -h
-          apple-ads stats searchterms -h
-          apple-ads timeline -h
-          apple-ads merge-csv -h
-          apple-ads get update-commands-csv -h
-          apple-ads analyse discovery -h
-          apple-ads analyse cannibalisation -h
-          apple-ads analyse language-mismatch -h
+          ./apple-ads -h
+          ./apple-ads stats campaigns -h
+          ./apple-ads stats adgroups -h
+          ./apple-ads stats keywords -h
+          ./apple-ads stats searchterms -h
+          ./apple-ads timeline -h
+          ./apple-ads merge-csv -h
+          ./apple-ads get update-commands-csv -h
+          ./apple-ads analyse discovery -h
+          ./apple-ads analyse cannibalisation -h
+          ./apple-ads analyse language-mismatch -h
