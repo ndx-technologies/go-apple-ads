@@ -28,7 +28,7 @@ jobs:
         env:
           GOEXPERIMENT: jsonv2
         run: |
-          go build cmd/apple-ads
+          go build ./cmd/apple-ads
           apple-ads -h
           apple-ads stats campaigns -h
           apple-ads stats adgroups -h
