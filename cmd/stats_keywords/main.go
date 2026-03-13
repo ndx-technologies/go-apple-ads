@@ -712,10 +712,15 @@ func Run(args []string) {
 		}
 		if keepCountry != nil {
 			campaign := config.GetCampaign(e.CampaignID)
+			found := false
 			for _, country := range campaign.Countries {
-				if !keepCountry[country] {
-					continue
+				if keepCountry[country] {
+					found = true
+					break
 				}
+			}
+			if !found {
+				continue
 			}
 		}
 		keywordsStats = append(keywordsStats, e)
