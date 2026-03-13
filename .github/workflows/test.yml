@@ -35,6 +35,6 @@ jobs:
           ./apple-ads stats keywords -h
           ./apple-ads stats searchterms -h
           ./apple-ads timeline -h
-          ./apple-ads analyse discovery -h
-          ./apple-ads analyse cannibalisation -h
-          ./apple-ads analyse language-mismatch -h
+          ./apple-ads analyse keywords discovery -h
+          ./apple-ads analyse keywords cannibalisation -h
+          ./apple-ads analyse keywords language-mismatch -h
