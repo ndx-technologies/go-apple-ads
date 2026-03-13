@@ -13,8 +13,10 @@ import (
 	"time"
 
 	"github.com/ndx-technologies/fmtx"
+	"github.com/ndx-technologies/geo"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
 	"github.com/ndx-technologies/iterx"
+	"github.com/ndx-technologies/slicex"
 	"github.com/ndx-technologies/timex"
 )
 
@@ -478,7 +480,7 @@ func printWastefulWithConfidence(keywords []goappleads.KeywordRow, baselines map
 	fmt.Printf("\n Total: %d non-converting keywords, %d with low confidence\n\n", len(wasteful), len(lowConf))
 }
 
-func printBidAnalysis(keywords []goappleads.KeywordRow, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB, showID, showPaused bool) {
+func printBidAnalysis(keywords []goappleads.KeywordRow, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) {
 	fmtx.HeaderTo(os.Stdout, "BID ANALYSIS")
 
 	var defaultBid, setBid []KeywordStats
@@ -640,6 +642,7 @@ func Run(args []string) {
 		minSpend                      float64
 		topN                          int
 		campaignIDsStr, adGroupIDsStr string
+		countries                     []geo.Country
 		from, until                   time.Time
 	)
 	flag.Usage = func() {
@@ -656,8 +659,10 @@ func Run(args []string) {
 	flag.BoolVar(&fmtx.EnableColor, "color", os.Getenv("NO_COLOR") == "", "colorize output")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")
-	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
-	flag.Func("until", "until UTC day start (e.g. 2026-01-01)", timex.TimeParserWithFormat(&until, time.DateOnly))
+	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")
+	flag.Func("countries", "comma-separated list of countries (ISO 3166) to keep (default keep all)", slicex.Parser(&countries))
+	flag.Func("from", "from UTC day start (e.g. 2025-01-01) (default keep all)", timex.TimeParserWithFormat(&from, time.DateOnly))
+	flag.Func("until", "until UTC day start (e.g. 2026-01-01) (default keep all)", timex.TimeParserWithFormat(&until, time.DateOnly))
 	flag.Parse(args)
 
 	config, keywordsDB, err := goappleads.Load(applePath)
@@ -681,6 +686,14 @@ func Run(args []string) {
 		}
 	}
 
+	var keepCountry map[geo.Country]bool
+	if len(countries) > 0 {
+		keepCountry = make(map[geo.Country]bool, len(countries))
+		for _, c := range countries {
+			keepCountry[c] = true
+		}
+	}
+
 	var keywordsStats []goappleads.KeywordRow
 	for e := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
 		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
@@ -696,6 +709,14 @@ func Run(args []string) {
 			keywordInfo := keywordsDB.GetKeywordInfo(e.KeywordID)
 			if keywordInfo.Status == goappleads.Paused || config.IsAdGroupPaused(e.AdGroupID) {
 				continue
+			}
+		}
+		if keepCountry != nil {
+			campaign := config.GetCampaign(e.CampaignID)
+			for _, country := range campaign.Countries {
+				if keepCountry[country] {
+					continue
+				}
 			}
 		}
 		keywordsStats = append(keywordsStats, e)
@@ -724,6 +745,6 @@ func Run(args []string) {
 
 	printBestWorstKeywords(keywordsStats, overall, topN, showNegativeKeywords, showID, showPaused, *config, keywordsDB)
 	printWastefulWithConfidence(keywordsStats, baselines, overall, minSpend, showNegativeKeywords, showID, showPaused, *config, keywordsDB)
-	printBidAnalysis(keywordsStats, *config, keywordsDB, showID, showPaused)
+	printBidAnalysis(keywordsStats, *config, keywordsDB)
 	printNonConvertingKeywords(keywordsStats, *config, keywordsDB, showID, showPaused)
 }

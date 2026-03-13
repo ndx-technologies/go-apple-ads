@@ -18,6 +18,7 @@ import (
 	"github.com/ndx-technologies/geo"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
 	"github.com/ndx-technologies/iterx"
+	"github.com/ndx-technologies/slicex"
 	"github.com/ndx-technologies/timex"
 )
 
@@ -1025,7 +1026,7 @@ func Run(args []string) {
 		minSpend                      float64
 		topN                          int
 		campaignIDsStr, adGroupIDsStr string
-		countriesStr                  string
+		countries                     []geo.Country
 		from, until                   time.Time
 	)
 	flag.Usage = func() {
@@ -1042,11 +1043,11 @@ func Run(args []string) {
 	flag.Float64Var(&minSpend, "min-spend", 0.40, "min spend threshold for wasteful search terms")
 	flag.IntVar(&topN, "top-n", 300, "number of top search terms to show")
 	flag.BoolVar(&fmtx.EnableColor, "color", os.Getenv("NO_COLOR") == "", "colorize output")
-	flag.StringVar(&countriesStr, "countries", "", "comma-separated list of countries (ISO 3166) to keep")
+	flag.Func("countries", "comma-separated list of countries (ISO 3166) to keep (default keep all)", slicex.Parser(&countries))
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep (for searchterm impression share selects country of campaign)")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep (for searchterm impression share selects country of adgroup campaign)")
-	flag.Func("from", "from UTC day start (e.g. 2025-01-01)", timex.TimeParserWithFormat(&from, time.DateOnly))
-	flag.Func("until", "until UTC day start (e.g. 2026-01-01)", timex.TimeParserWithFormat(&until, time.DateOnly))
+	flag.Func("from", "from UTC day start (e.g. 2025-01-01) (default keep all)", timex.TimeParserWithFormat(&from, time.DateOnly))
+	flag.Func("until", "until UTC day start (e.g. 2026-01-01) (default keep all)", timex.TimeParserWithFormat(&until, time.DateOnly))
 	flag.Parse(args)
 
 	config, keywordsDB, err := goappleads.Load(applePath)
@@ -1071,34 +1072,10 @@ func Run(args []string) {
 	}
 
 	var keepCountries map[geo.Country]bool
-	if len(countriesStr) > 0 {
+	if len(countries) > 0 {
 		keepCountries = make(map[geo.Country]bool)
-		for country := range strings.SplitSeq(countriesStr, ",") {
-			var c geo.Country
-			if err := c.UnmarshalText([]byte(country)); err != nil {
-				log.Fatalf("invalid country code '%s': %v", country, err)
-			}
-			keepCountries[c] = true
-		}
-	}
-	if keepCountries == nil {
-		for id := range keepCampaign {
-			campaign := config.GetCampaign(id)
-			for _, country := range campaign.Countries {
-				if keepCountries == nil {
-					keepCountries = make(map[geo.Country]bool)
-				}
-				keepCountries[country] = true
-			}
-		}
-		for id := range keepAdGroup {
-			campaign := config.GetCampaignForAdGroup(id)
-			for _, country := range campaign.Countries {
-				if keepCountries == nil {
-					keepCountries = make(map[geo.Country]bool)
-				}
-				keepCountries[country] = true
-			}
+		for _, country := range countries {
+			keepCountries[country] = true
 		}
 	}
 
