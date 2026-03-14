@@ -5,7 +5,8 @@
 </p>
 
 Tools for structured access to Apple Ads, export/import config, apply changes, analyze data.
-Use this toolkit to setup your AI-driven Apple Ads GitOps. 
+Use this toolkit to setup your AI-driven Ads GitOps.
+No API access required.
 
 ```bash
 go install github.com/ndx-technologies/go-apple-ads/cmd/apple-ads@latest
