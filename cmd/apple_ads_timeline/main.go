@@ -3,6 +3,7 @@ package appleadstimeline
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -10,8 +11,10 @@ import (
 	"time"
 
 	"github.com/ndx-technologies/fmtx"
+	"github.com/ndx-technologies/geo"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
 	"github.com/ndx-technologies/iterx"
+	"github.com/ndx-technologies/slicex"
 	"github.com/ndx-technologies/timex"
 )
 
@@ -24,6 +27,7 @@ func Run(args []string) {
 		keywordStatsCSV                              string
 		campaignStatsCSV                             string
 		campaignIDsStr, adGroupIDsStr, keywordsIDStr string
+		countries                                    []geo.Country
 		from, until                                  time.Time
 	)
 
@@ -40,14 +44,21 @@ func Run(args []string) {
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
 	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of adgroup IDs to keep")
 	flag.StringVar(&keywordsIDStr, "keyword-ids", "", "comma-separated list of keyword IDs to keep")
+	flag.Func("countries", "comma-separated list of countries (ISO 3166) to keep (default keep all)", slicex.Parser(&countries))
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01) (default keep all)", timex.TimeParserWithFormat(&from, time.DateOnly))
 	flag.Func("until", "until UTC day start (e.g. 2026-01-01) (default keep all)", timex.TimeParserWithFormat(&until, time.DateOnly))
 	flag.Parse(args)
+
+	config, _, err := goappleads.Load(applePath)
+	if err != nil {
+		log.Fatal("failed to load data:", err)
+	}
 
 	var (
 		keepCampaignIDs map[goappleads.CampaignID]bool
 		keepAdGroupIDs  map[goappleads.AdGroupID]bool
 		keepKeywordIDs  map[goappleads.KeywordID]bool
+		keepCountries   map[geo.Country]bool
 	)
 
 	if len(campaignIDsStr) > 0 {
@@ -70,6 +81,13 @@ func Run(args []string) {
 		}
 	}
 
+	if len(countries) > 0 {
+		keepCountries = make(map[geo.Country]bool)
+		for _, c := range countries {
+			keepCountries[c] = true
+		}
+	}
+
 	var keywordsStats []goappleads.KeywordRow
 	for e := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
 		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
@@ -83,6 +101,19 @@ func Run(args []string) {
 		}
 		if keepAdGroupIDs != nil && !keepAdGroupIDs[e.AdGroupID] {
 			continue
+		}
+		if keepCountries != nil {
+			campaign := config.GetCampaign(e.CampaignID)
+			hasCountry := false
+			for _, c := range campaign.Countries {
+				if keepCountries[c] {
+					hasCountry = true
+					break
+				}
+			}
+			if !hasCountry {
+				continue
+			}
 		}
 		keywordsStats = append(keywordsStats, e)
 	}
