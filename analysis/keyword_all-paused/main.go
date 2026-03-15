@@ -56,6 +56,9 @@ func Analyze(config *goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) []I
 			if ag.Status != goappleads.Enabled {
 				continue
 			}
+			if totalPerAdGroup[ag.ID] == 0 {
+				continue
+			}
 			if activePerAdGroup[ag.ID] == 0 {
 				issues = append(issues, Issue{
 					CampaignID:     camp.ID,
@@ -64,6 +67,9 @@ func Analyze(config *goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) []I
 					TotalKeywords:  totalPerAdGroup[ag.ID],
 				})
 			}
+		}
+		if totalPerCampaign[camp.ID] == 0 {
+			continue
 		}
 		if activePerCampaign[camp.ID] == 0 {
 			issues = append(issues, Issue{
@@ -116,10 +122,6 @@ func printAnalysis(w io.StringWriter, showID bool, config *goappleads.Config, is
 	tw.WriteHeaderLine()
 
 	for _, e := range issues {
-		if e.TotalKeywords == 0 {
-			continue
-		}
-
 		ratio := 100 * (e.TotalKeywords - e.ActiveKeywords) / e.TotalKeywords
 
 		campaign := config.GetCampaign(e.CampaignID)
