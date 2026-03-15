@@ -126,6 +126,19 @@ func Run(args []string) {
 		if keepCampaignIDs != nil && !keepCampaignIDs[e.CampaignID] {
 			continue
 		}
+		if keepCountries != nil {
+			campaign := config.GetCampaign(e.CampaignID)
+			hasCountry := false
+			for _, c := range campaign.Countries {
+				if keepCountries[c] {
+					hasCountry = true
+					break
+				}
+			}
+			if !hasCountry {
+				continue
+			}
+		}
 		campaigns = append(campaigns, e)
 	}
 
