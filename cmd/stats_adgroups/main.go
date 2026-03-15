@@ -198,7 +198,6 @@ func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keyword
 			strconv.Itoa(campBaseline.Inst),
 			"",
 			strconv.FormatFloat(campBaseline.CPI, 'f', 2, 64),
-			"",
 			strconv.FormatFloat(campBaseline.CVR*100, 'f', 1, 64) + "%",
 			strconv.FormatFloat(campBaseline.CVR*100, 'f', 1, 64) + "%",
 			strconv.FormatFloat(campBaseline.CTR*100, 'f', 2, 64) + "%",
