@@ -10,6 +10,8 @@ import (
 
 	"github.com/ndx-technologies/fmtx"
 	"github.com/ndx-technologies/go-apple-ads/analysis"
+	analysiscampaigndiscovery "github.com/ndx-technologies/go-apple-ads/analysis/campaign_discovery"
+	analysiskeywordallpaused "github.com/ndx-technologies/go-apple-ads/analysis/keyword_all-paused"
 	analysiskeywordcannibalisation "github.com/ndx-technologies/go-apple-ads/analysis/keyword_cannibalisation"
 	analysiskeyworddiscovery "github.com/ndx-technologies/go-apple-ads/analysis/keyword_discovery"
 	analysiskeywordlanguagemismatch "github.com/ndx-technologies/go-apple-ads/analysis/keyword_language_mismatch"
@@ -44,10 +46,14 @@ var commands = map[string]CommandInfo{
 	"analyse keywords discovery":         {DocShort: analysiskeyworddiscovery.DocShort, Run: analyse(analysiskeyworddiscovery.Run)},
 	"analyse keywords cannibalisation":   {DocShort: analysiskeywordcannibalisation.DocShort, Run: analyse(analysiskeywordcannibalisation.Run)},
 	"analyse keywords language-mismatch": {DocShort: analysiskeywordlanguagemismatch.DocShort, Run: analyse(analysiskeywordlanguagemismatch.Run)},
+	"analyse campaign discovery":         {DocShort: analysiscampaigndiscovery.DocShort, Run: analyse(analysiscampaigndiscovery.Run)},
+	"analyse keywords all-paused":        {DocShort: analysiskeywordallpaused.DocShort, Run: analyse(analysiskeywordallpaused.Run)},
 	"analyse": {DocShort: "run all analysers", Run: analyse(
 		analysiskeyworddiscovery.Run,
 		analysiskeywordcannibalisation.Run,
 		analysiskeywordlanguagemismatch.Run,
+		analysiscampaigndiscovery.Run,
+		analysiskeywordallpaused.Run,
 	)},
 }
 
@@ -109,7 +115,13 @@ func analyse(fs ...func(args []string) (analysis.Info, error)) func(args []strin
 		for _, f := range fs {
 			info, err := f(args)
 			if err != nil {
-				w.WriteString(fmtx.RedS("error") + " " + err.Error() + "\n")
+				if errjoined, ok := err.(interface{ Unwrap() []error }); ok {
+					for _, e := range errjoined.Unwrap() {
+						w.WriteString(fmtx.RedS("error") + " " + e.Error() + "\n")
+					}
+				} else {
+					w.WriteString(fmtx.RedS("error") + " " + err.Error() + "\n")
+				}
 				hasError = true
 			}
 			if info != nil {

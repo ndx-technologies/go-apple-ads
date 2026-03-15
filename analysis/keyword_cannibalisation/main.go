@@ -359,7 +359,7 @@ func printCannibalizationAnalysis(
 }
 
 const DocShort string = "detect collision of keywords"
-const doc string = "Keyword Cannibalisation is when the same keyword appears in multiple ad groups within the same campaign.\n\n"
+const doc string = "Keyword Cannibalisation is when the same keyword appears in multiple adgroups within the same campaign.\n\n"
 
 func Run(args []string) (analysis.Info, error) {
 	flag := flag.NewFlagSet("analyse keywords cannibalisation", flag.ExitOnError)
@@ -382,7 +382,7 @@ func Run(args []string) (analysis.Info, error) {
 	flag.BoolVar(&verbose, "v", false, "verbose: print full table; by default prints one-line summary")
 	flag.BoolVar(&showPaused, "paused", false, "include paused keywords, adgroups, campaigns")
 	flag.StringVar(&campaignIDsStr, "campaign-ids", "", "comma-separated list of campaign IDs to keep")
-	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of ad group IDs to keep")
+	flag.StringVar(&adGroupIDsStr, "adgroup-ids", "", "comma-separated list of adgroup IDs to keep")
 	flag.Func("from", "from UTC day start (e.g. 2025-01-01) (default keep all)", timex.TimeParserWithFormat(&from, time.DateOnly))
 	flag.Func("until", "until UTC day start (e.g. 2026-01-01) (default keep all)", timex.TimeParserWithFormat(&until, time.DateOnly))
 	flag.Parse(args)

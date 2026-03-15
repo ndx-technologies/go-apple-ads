@@ -35,8 +35,10 @@ type Status string
 
 const (
 	Active  Status = "ACTIVE"
+	Enabled Status = "ENABLED"
 	Paused  Status = "PAUSED"
 	Deleted Status = "DELETED"
+	Removed Status = "REMOVED"
 )
 
 func (s Status) String() string { return string(s) }
