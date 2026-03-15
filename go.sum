@@ -6,5 +6,7 @@ github.com/ndx-technologies/iterx v0.3.2 h1:13XpVFgbrZIKPRD8xLwAniJfCbWanPSmg2kJ
 github.com/ndx-technologies/iterx v0.3.2/go.mod h1:lKZ+wa1wC/Qod0yOhnzS22Ad846XUMuGJ/N9/UbLWh4=
 github.com/ndx-technologies/slicex v0.2.0 h1:R2D14+/XjshKz/SRlpzrp3nSvHe44PnsUF/SCP1akNA=
 github.com/ndx-technologies/slicex v0.2.0/go.mod h1:QqahtdkkyU2Whd4/GmTVZR/Qcm6+ogt5Qxh8j16EYOU=
+github.com/ndx-technologies/tdigest v0.2.1 h1:nV0V6ZeSvz/65xiVywOowo+cDw2JeMjaxOrJAj3p/hw=
+github.com/ndx-technologies/tdigest v0.2.1/go.mod h1:IbQ5xnV41iEE/RQQoPCthpVnZ3Wpgbz3tl6iznOvIPc=
 github.com/ndx-technologies/timex v0.1.2 h1:cQrPmYAWTvkJf7k5Lq7BS0F05IPoH5j2vuuNyxoALfA=
 github.com/ndx-technologies/timex v0.1.2/go.mod h1:QKni/TJ+ZWO2BHvIW3FPa+CwGyGcF4WNOxs5aonuMWQ=

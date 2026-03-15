@@ -147,17 +147,33 @@ func Run(args []string) {
 	_, overall := goappleads.ComputeBaselines(keywordsStats)
 
 	byDay := make(map[time.Time]goappleads.Agg)
-	for _, r := range campaigns {
-		a := byDay[r.Day]
-		if a.Days == nil {
-			a.Days = make(map[time.Time]struct{})
+
+	if keepAdGroupIDs != nil || keepKeywordIDs != nil {
+		for _, r := range keywordsStats {
+			a := byDay[r.Day]
+			if a.Days == nil {
+				a.Days = make(map[time.Time]struct{})
+			}
+			a.Spend += r.Spend
+			a.Imp += r.Impressions
+			a.Taps += r.Taps
+			a.Inst += r.Installs
+			a.Days[r.Day] = struct{}{}
+			byDay[r.Day] = a
 		}
-		a.Spend += r.Spend
-		a.Imp += r.Impressions
-		a.Taps += r.Taps
-		a.Inst += r.Installs
-		a.Days[r.Day] = struct{}{}
-		byDay[r.Day] = a
+	} else {
+		for _, r := range campaigns {
+			a := byDay[r.Day]
+			if a.Days == nil {
+				a.Days = make(map[time.Time]struct{})
+			}
+			a.Spend += r.Spend
+			a.Imp += r.Impressions
+			a.Taps += r.Taps
+			a.Inst += r.Installs
+			a.Days[r.Day] = struct{}{}
+			byDay[r.Day] = a
+		}
 	}
 
 	days := make([]time.Time, 0, len(byDay))

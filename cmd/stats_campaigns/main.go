@@ -18,7 +18,7 @@ import (
 	"github.com/ndx-technologies/timex"
 )
 
-func printBaselines(w io.StringWriter, showID, showPaused bool, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config) {
+func printBaselines(w io.StringWriter, showID, showPaused bool, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config, agLearning map[goappleads.AdGroupID]goappleads.LearningStatus) {
 	fmtx.HeaderTo(w, "CAMPAIGN STATS")
 
 	campaigns := slices.Collect(maps.Keys(baselines))
@@ -46,6 +46,7 @@ func printBaselines(w io.StringWriter, showID, showPaused bool, baselines map[go
 			{Header: "Inst", Width: 6, Alignment: fmtx.AlignRight},
 			{Header: "Installs", Width: 20},
 			{Header: "Spend(USD)", Width: 12, Alignment: fmtx.AlignRight},
+			{Header: "Learned", Width: 7, Alignment: fmtx.AlignRight},
 		},
 	}
 
@@ -62,6 +63,7 @@ func printBaselines(w io.StringWriter, showID, showPaused bool, baselines map[go
 		strconv.Itoa(overall.Inst),
 		"",
 		strconv.FormatFloat(overall.Spend, 'f', 2, 64),
+		"",
 	)
 	tw.WriteHeaderLine()
 
@@ -88,6 +90,28 @@ func printBaselines(w io.StringWriter, showID, showPaused bool, baselines map[go
 			name += " " + fmtx.DimS("⏸")
 		}
 
+		learned, total := 0, 0
+		for _, ag := range config.GetCampaign(c).AdGroups {
+			if s, ok := agLearning[ag.ID]; ok {
+				total++
+				if s.IsLearned() {
+					learned++
+				}
+			}
+		}
+		learningS := fmtx.DimS("-")
+		if total > 0 {
+			ls := strconv.Itoa(learned) + "/" + strconv.Itoa(total)
+			switch learned {
+			case total:
+				learningS = fmtx.GreenS(ls)
+			case 0:
+				learningS = fmtx.RedS(ls)
+			default:
+				learningS = fmtx.YellowS(ls)
+			}
+		}
+
 		row := []string{
 			name,
 			cpiStr,
@@ -96,6 +120,7 @@ func printBaselines(w io.StringWriter, showID, showPaused bool, baselines map[go
 			strconv.Itoa(baselines[c].Inst),
 			fmtx.VolumeBar(baselines[c].Inst, overall.Inst, 20.0),
 			strconv.FormatFloat(baselines[c].Spend, 'f', 2, 64),
+			learningS,
 		}
 
 		if showID {
@@ -166,26 +191,11 @@ func Run(args []string) {
 		keywordsStats = append(keywordsStats, e)
 	}
 
-	var campaigns []goappleads.CampaignRow
-	for e := range iterx.FromFile(campaignStatsCSV, goappleads.ParseCampaignsStatsCSV) {
-		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
-			continue
-		}
-		if keepCampaignIDs != nil && !keepCampaignIDs[e.CampaignID] {
-			continue
-		}
-		if !showPaused {
-			campaign := config.GetCampaign(e.CampaignID)
-			if campaign.Status == goappleads.Paused {
-				continue
-			}
-		}
-		campaigns = append(campaigns, e)
-	}
-
 	baselines, overall := goappleads.ComputeBaselines(keywordsStats)
+
+	learningByAG := goappleads.ComputeLearningByAdGroup(keywordsStats, goappleads.LearningThreshold, time.Now().UTC())
 
 	w := os.Stdout
 
-	printBaselines(w, showID, showPaused, baselines, overall, *config)
+	printBaselines(w, showID, showPaused, baselines, overall, *config, learningByAG)
 }

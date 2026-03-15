@@ -40,7 +40,28 @@ func ratioVsBaseline(value, baseline float64, higherIsBetter bool, ok bool) stri
 	}
 }
 
-func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keywords []goappleads.KeywordRow, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) {
+func formatAdGroupLearning(s goappleads.LearningStatus) string {
+	if s.IsLearned() {
+		return fmtx.GreenS("+" + strconv.Itoa(s.DaysSinceLearned) + "d")
+	}
+	if s.EstDaysRemaining < 0 {
+		if s.IsRelearning() {
+			return fmtx.RedS("↺?")
+		}
+		return fmtx.RedS("?")
+	}
+	prefix := ""
+	if s.IsRelearning() {
+		prefix = "↺"
+	}
+	str := prefix + "-" + strconv.Itoa(s.EstDaysRemaining) + "d"
+	if s.EstDaysRemaining > 14 {
+		return fmtx.RedS(str)
+	}
+	return fmtx.YellowS(str)
+}
+
+func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keywords []goappleads.KeywordRow, baselines map[goappleads.CampaignID]goappleads.BaselineMetrics, overall goappleads.BaselineMetrics, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB, learning map[goappleads.AdGroupID]goappleads.LearningStatus) {
 	fmtx.HeaderTo(w, "ADGROUP PERFORMANCE")
 
 	type Agg struct {
@@ -161,6 +182,7 @@ func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keyword
 				{Header: "CTR", Width: 7, Alignment: fmtx.AlignRight},
 				{Header: "Taps", Width: 7, Alignment: fmtx.AlignRight},
 				{Header: "Spend(USD)", Width: 10, Alignment: fmtx.AlignRight},
+				{Header: "Learned", Width: 9, Alignment: fmtx.AlignRight},
 			},
 		}
 
@@ -182,6 +204,7 @@ func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keyword
 			strconv.FormatFloat(campBaseline.CTR*100, 'f', 2, 64) + "%",
 			strconv.Itoa(campBaseline.Taps),
 			strconv.FormatFloat(campBaseline.Spend, 'f', 2, 64),
+			"",
 		}
 
 		if showID {
@@ -218,6 +241,11 @@ func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keyword
 				name += " " + fmtx.DimS("⏸")
 			}
 
+			learningS := fmtx.DimS("n/a")
+			if s, ok := learning[g.adGroup]; ok {
+				learningS = formatAdGroupLearning(s)
+			}
+
 			row := []string{
 				name,
 				strconv.Itoa(keywordsDB.NumKeywordsInAdGroup(g.adGroup)),
@@ -229,6 +257,7 @@ func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keyword
 				strconv.FormatFloat(ctr*100, 'f', 2, 64) + "%",
 				strconv.Itoa(d.Taps),
 				strconv.FormatFloat(d.Spend, 'f', 2, 64),
+				learningS,
 			}
 
 			if showID {
@@ -242,7 +271,11 @@ func printAdGroupPerformance(w io.StringWriter, showID, showPaused bool, keyword
 }
 
 const DocShort string = "adgroups stats (CPI, CVR, CTR, Installs, Spend, ...)"
-const doc string = "Apple Ads AdGropup Analysis — stats\n\n"
+const doc string = `Apple Ads AdGropup Analysis — stats
+
+AdGroup starts in learning phase and re-enters it after significant changes (CPT shift >10% or keyword count delta ≥3) until cumulative installs reach 50.
+Estimated days remaining uses install velocity over last 7d with linear projection.
+`
 
 func Run(args []string) {
 	flag := flag.NewFlagSet("analyse adgroups", flag.ExitOnError)
@@ -310,7 +343,9 @@ func Run(args []string) {
 
 	baselines, overall := goappleads.ComputeBaselines(keywordsStats)
 
+	learning := goappleads.ComputeLearningByAdGroup(keywordsStats, goappleads.LearningThreshold, time.Now().UTC())
+
 	w := os.Stdout
 
-	printAdGroupPerformance(w, showID, showPaused, keywordsStats, baselines, overall, *config, keywordsDB)
+	printAdGroupPerformance(w, showID, showPaused, keywordsStats, baselines, overall, *config, keywordsDB, learning)
 }
