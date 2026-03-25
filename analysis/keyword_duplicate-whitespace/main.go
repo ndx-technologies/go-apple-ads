@@ -8,10 +8,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ndx-technologies/fmtx"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
 	"github.com/ndx-technologies/go-apple-ads/analysis"
+	"github.com/ndx-technologies/iterx"
+	"github.com/ndx-technologies/timex"
 )
 
 const DocShort string = "detect duplicate keywords (whitespace)"
@@ -30,7 +33,7 @@ type Issue struct {
 	Keywords   []goappleads.KeywordInfo
 }
 
-func Analyze(keywordsDB *goappleads.KeywordCSVDB) []Issue {
+func Analyze(config *goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) []Issue {
 	type key struct {
 		adGroupID   goappleads.AdGroupID
 		fingerprint string
@@ -38,6 +41,9 @@ func Analyze(keywordsDB *goappleads.KeywordCSVDB) []Issue {
 	groups := make(map[key][]goappleads.KeywordInfo)
 	for _, kw := range keywordsDB.Keywords {
 		if kw.IsNegative || kw.Status != goappleads.Active {
+			continue
+		}
+		if config.IsAdGroupPaused(kw.AdGroupID) {
 			continue
 		}
 		fp := strings.ReplaceAll(strings.ToLower(kw.Keyword), " ", "")
@@ -137,7 +143,7 @@ func Run(args []string) (analysis.Info, error) {
 		return nil, fmt.Errorf("failed to load data: %w", err)
 	}
 
-	issues := Analyze(keywordsDB)
+	issues := Analyze(config, keywordsDB)
 
 	if len(issues) == 0 {
 		return Info{N: len(keywordsDB.Keywords)}, nil
