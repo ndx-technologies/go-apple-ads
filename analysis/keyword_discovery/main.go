@@ -93,7 +93,7 @@ func (a *AppleAdsKeywordsDiscoveryAnalyzer) Finalize() []DiscoveryIssue {
 
 	for _, kw := range a.KeywordsDB.Keywords {
 		if kw.IsNegative && discoveryCampaigns[kw.CampaignID] {
-			negativesByDiscoveryCampaign[kw.CampaignID][kw.Keyword] = true
+			negativesByDiscoveryCampaign[kw.CampaignID][strings.ToLower(kw.Keyword)] = true
 		}
 	}
 
@@ -133,7 +133,7 @@ func (a *AppleAdsKeywordsDiscoveryAnalyzer) Finalize() []DiscoveryIssue {
 				continue
 			}
 			negatives := negativesByDiscoveryCampaign[discCampID]
-			if !negatives[kw.Keyword] {
+			if !negatives[strings.ToLower(kw.Keyword)] {
 				issues = append(issues, DiscoveryIssue{
 					Type:                MissingNegativeInDiscovery,
 					Keyword:             kw.Keyword,
