@@ -120,11 +120,10 @@ def main():
         with open(filepath, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row.get("Match Type") != "EXACT":
-                    continue
                 if row.get("Status") != "ACTIVE":
                     continue
-                keyword = row["Keyword"].strip()
+
+                keyword = row["Keyword"]
                 if not keyword:
                     continue
 
