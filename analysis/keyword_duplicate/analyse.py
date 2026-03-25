@@ -89,6 +89,31 @@ def print_table(duplicates: dict, show_id: bool) -> None:
     print()
 
 
+def load_paused_ids(apple_path: Path) -> tuple[set, set]:
+    """Return (paused_campaign_ids, paused_adgroup_ids) from config.json."""
+    config_path = apple_path / "config.json"
+    if not config_path.exists():
+        return set(), set()
+    import json
+
+    with open(config_path) as f:
+        config = json.load(f)
+    paused_campaigns: set = set()
+    paused_adgroups: set = set()
+    for campaign in config.get("campaigns", []):
+        cid = campaign.get("id")
+        if campaign.get("status") != "ENABLED":
+            if cid:
+                paused_campaigns.add(cid)
+        for ag in campaign.get("adgroups", []):
+            agid = ag.get("id")
+            if not agid:
+                continue
+            if ag.get("status") != "ENABLED" or cid in paused_campaigns:
+                paused_adgroups.add(agid)
+    return paused_campaigns, paused_adgroups
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=(
@@ -105,10 +130,13 @@ def main():
     args = parser.parse_args()
     _set_color(not args.no_color)
 
-    keywords_dir = Path(args.apple_path) / "keywords"
+    apple_path = Path(args.apple_path)
+    keywords_dir = apple_path / "keywords"
     if not keywords_dir.is_dir():
         sys.stderr.write(red("error") + f" keywords dir not found: {keywords_dir}\n")
         sys.exit(2)
+
+    _, paused_adgroups = load_paused_ids(apple_path)
 
     records = []
     for filepath in sorted(keywords_dir.glob("*.csv")):
@@ -125,6 +153,9 @@ def main():
 
                 keyword = row["Keyword"]
                 if not keyword:
+                    continue
+
+                if row.get("Ad Group ID", "") in paused_adgroups:
                     continue
 
                 try:
