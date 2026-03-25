@@ -27,13 +27,21 @@ https://ads.apple.com/app-store/help/keywords/0059-understand-keyword-match-type
 
 `
 
+type KeywordStats struct {
+	Impressions int
+	Taps        int
+	Installs    int
+	Spend       float64
+}
+
 type Issue struct {
 	AdGroupID  goappleads.AdGroupID
 	CampaignID goappleads.CampaignID
 	Keywords   []goappleads.KeywordInfo
+	Stats      map[goappleads.KeywordID]KeywordStats
 }
 
-func Analyze(config *goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) []Issue {
+func Analyze(config *goappleads.Config, keywordsDB *goappleads.KeywordCSVDB, stats map[goappleads.KeywordID]KeywordStats) []Issue {
 	type key struct {
 		adGroupID   goappleads.AdGroupID
 		fingerprint string
@@ -60,6 +68,7 @@ func Analyze(config *goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) []I
 			AdGroupID:  kwds[0].AdGroupID,
 			CampaignID: kwds[0].CampaignID,
 			Keywords:   kwds,
+			Stats:      stats,
 		})
 	}
 	return issues
@@ -86,8 +95,12 @@ func printAnalysis(w io.StringWriter, showID bool, config *goappleads.Config, is
 		Cols: []fmtx.TablCol{
 			{Header: "Campaign", Width: 36},
 			{Header: "Ad Group", Width: 28},
-			{Header: "Keywords", Width: 60},
-			{Header: "Keyword IDs", Width: 40},
+			{Header: "Keyword", Width: 32},
+			{Header: "Keyword ID", Width: 14},
+			{Header: "Imp", Width: 7, Alignment: fmtx.AlignRight},
+			{Header: "Taps", Width: 6, Alignment: fmtx.AlignRight},
+			{Header: "Inst", Width: 6, Alignment: fmtx.AlignRight},
+			{Header: "Spend", Width: 8, Alignment: fmtx.AlignRight},
 		},
 	}
 	if showID {
@@ -101,22 +114,34 @@ func printAnalysis(w io.StringWriter, showID bool, config *goappleads.Config, is
 	tw.WriteHeaderLine()
 
 	for _, iss := range issues {
-		var kwStrs []string
-		var kwIDStrs []string
-		for _, kw := range iss.Keywords {
-			kwStrs = append(kwStrs, fmtx.RedS(kw.Keyword))
-			kwIDStrs = append(kwIDStrs, fmtx.DimS(string(kw.ID)))
+		for i, kw := range iss.Keywords {
+			st := iss.Stats[kw.ID]
+			campStr := ""
+			agStr := ""
+			if i == 0 {
+				campStr = config.GetCampaign(iss.CampaignID).Name
+				agStr = config.GetAdGroup(iss.AdGroupID).Name
+			}
+			kwStr := fmtx.RedS(kw.Keyword)
+			if st.Impressions == 0 && st.Taps == 0 && st.Installs == 0 {
+				kwStr = fmtx.DimS(kw.Keyword)
+			}
+			row := []string{
+				campStr,
+				agStr,
+				kwStr,
+				fmtx.DimS(string(kw.ID)),
+				strconv.Itoa(st.Impressions),
+				strconv.Itoa(st.Taps),
+				strconv.Itoa(st.Installs),
+				strconv.FormatFloat(st.Spend, 'f', 2, 64),
+			}
+			if showID {
+				row = append([]string{fmtx.DimS(string(iss.CampaignID)), fmtx.DimS(string(iss.AdGroupID))}, row...)
+			}
+			tw.WriteRow(row...)
 		}
-		row := []string{
-			config.GetCampaign(iss.CampaignID).Name,
-			config.GetAdGroup(iss.AdGroupID).Name,
-			strings.Join(kwStrs, ", "),
-			strings.Join(kwIDStrs, ", "),
-		}
-		if showID {
-			row = append([]string{fmtx.DimS(string(iss.CampaignID)), fmtx.DimS(string(iss.AdGroupID))}, row...)
-		}
-		tw.WriteRow(row...)
+		w.WriteString("\n")
 	}
 	w.WriteString("\n")
 }
@@ -124,18 +149,23 @@ func printAnalysis(w io.StringWriter, showID bool, config *goappleads.Config, is
 func Run(args []string) (analysis.Info, error) {
 	fs := flag.NewFlagSet("analyse keywords duplicate-whitespace", flag.ExitOnError)
 	var (
-		applePath string
-		showID    bool
-		verbose   bool
+		applePath       string
+		keywordStatsCSV string
+		showID          bool
+		verbose         bool
+		from, until     time.Time
 	)
 	fs.Usage = func() {
 		fs.Output().Write([]byte(doc))
 		fs.PrintDefaults()
 	}
 	fs.StringVar(&applePath, "apple-path", "apple-ads", "path to dir with config.json and keywords CSVs")
+	fs.StringVar(&keywordStatsCSV, "keyword-stats-csv", "data/apple_ads_search_keywords_by_day.csv", "path to keyword stats by day CSV")
 	fs.BoolVar(&showID, "id", false, "show IDs")
 	fs.BoolVar(&fmtx.EnableColor, "color", os.Getenv("NO_COLOR") == "", "colorize output")
 	fs.BoolVar(&verbose, "v", false, "verbose: print full table; by default prints one-line summary")
+	fs.Func("from", "from UTC day start (e.g. 2025-01-01) (default keep all)", timex.TimeParserWithFormat(&from, time.DateOnly))
+	fs.Func("until", "until UTC day start (e.g. 2026-01-01) (default keep all)", timex.TimeParserWithFormat(&until, time.DateOnly))
 	fs.Parse(args)
 
 	config, keywordsDB, err := goappleads.Load(applePath)
@@ -143,7 +173,20 @@ func Run(args []string) (analysis.Info, error) {
 		return nil, fmt.Errorf("failed to load data: %w", err)
 	}
 
-	issues := Analyze(config, keywordsDB)
+	stats := make(map[goappleads.KeywordID]KeywordStats)
+	for e := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
+		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
+			continue
+		}
+		s := stats[e.KeywordID]
+		s.Impressions += e.Impressions
+		s.Taps += e.Taps
+		s.Installs += e.Installs
+		s.Spend += e.Spend
+		stats[e.KeywordID] = s
+	}
+
+	issues := Analyze(config, keywordsDB, stats)
 
 	if len(issues) == 0 {
 		return Info{N: len(keywordsDB.Keywords)}, nil
