@@ -15,10 +15,11 @@ type CampaignConfig struct {
 func (s CampaignConfig) IsZero() bool { return s.ID == "" && s.Name == "" && len(s.AdGroups) == 0 }
 
 type AdGroupConfig struct {
-	ID          AdGroupID `json:"id"`
-	Name        string    `json:"name"`
-	Status      Status    `json:"status"`
-	SearchMatch bool      `json:"search_match"`
+	ID            AdGroupID `json:"id"`
+	Name          string    `json:"name"`
+	Status        Status    `json:"status"`
+	SearchMatch   bool      `json:"search_match"`
+	DefaultMaxBid float64   `json:"default_max_bid"`
 }
 
 type Config struct {

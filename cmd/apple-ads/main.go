@@ -10,6 +10,7 @@ import (
 
 	"github.com/ndx-technologies/fmtx"
 	"github.com/ndx-technologies/go-apple-ads/analysis"
+	analysisadgroupsearchmatch "github.com/ndx-technologies/go-apple-ads/analysis/adgroup_searchmatch-high-default-bid"
 	analysiscampaigndiscovery "github.com/ndx-technologies/go-apple-ads/analysis/campaign_discovery"
 	analysiskeywordallpaused "github.com/ndx-technologies/go-apple-ads/analysis/keyword_all-paused"
 	analysiskeywordcannibalisation "github.com/ndx-technologies/go-apple-ads/analysis/keyword_cannibalisation"
@@ -36,24 +37,26 @@ Use this toolkit to setup your AI-driven Apple Ads GitOps.
 `
 
 var commands = map[string]CommandInfo{
-	"timeline":                           {DocShort: appleadstimeline.DocShort, Run: appleadstimeline.Run},
-	"merge-csv":                          {DocShort: appleadsmergecsv.DocShort, Run: appleadsmergecsv.Run},
-	"get update-commands-csv":            {DocShort: appleadsgetupdatecommandscsv.DocShort, Run: appleadsgetupdatecommandscsv.Run},
-	"stats campaigns":                    {DocShort: statscampaigns.DocShort, Run: statscampaigns.Run},
-	"stats adgroups":                     {DocShort: statsadgroups.DocShort, Run: statsadgroups.Run},
-	"stats keywords":                     {DocShort: statskeywords.DocShort, Run: statskeywords.Run},
-	"stats searchterms":                  {DocShort: statssearchterms.DocShort, Run: statssearchterms.Run},
-	"analyse keywords discovery":         {DocShort: analysiskeyworddiscovery.DocShort, Run: analyse(analysiskeyworddiscovery.Run)},
-	"analyse keywords cannibalisation":   {DocShort: analysiskeywordcannibalisation.DocShort, Run: analyse(analysiskeywordcannibalisation.Run)},
-	"analyse keywords language-mismatch": {DocShort: analysiskeywordlanguagemismatch.DocShort, Run: analyse(analysiskeywordlanguagemismatch.Run)},
-	"analyse campaign discovery":         {DocShort: analysiscampaigndiscovery.DocShort, Run: analyse(analysiscampaigndiscovery.Run)},
-	"analyse keywords all-paused":        {DocShort: analysiskeywordallpaused.DocShort, Run: analyse(analysiskeywordallpaused.Run)},
+	"timeline":                                      {DocShort: appleadstimeline.DocShort, Run: appleadstimeline.Run},
+	"merge-csv":                                     {DocShort: appleadsmergecsv.DocShort, Run: appleadsmergecsv.Run},
+	"get update-commands-csv":                       {DocShort: appleadsgetupdatecommandscsv.DocShort, Run: appleadsgetupdatecommandscsv.Run},
+	"stats campaigns":                               {DocShort: statscampaigns.DocShort, Run: statscampaigns.Run},
+	"stats adgroups":                                {DocShort: statsadgroups.DocShort, Run: statsadgroups.Run},
+	"stats keywords":                                {DocShort: statskeywords.DocShort, Run: statskeywords.Run},
+	"stats searchterms":                             {DocShort: statssearchterms.DocShort, Run: statssearchterms.Run},
+	"analyse keywords discovery":                    {DocShort: analysiskeyworddiscovery.DocShort, Run: analyse(analysiskeyworddiscovery.Run)},
+	"analyse keywords cannibalisation":              {DocShort: analysiskeywordcannibalisation.DocShort, Run: analyse(analysiskeywordcannibalisation.Run)},
+	"analyse keywords language-mismatch":            {DocShort: analysiskeywordlanguagemismatch.DocShort, Run: analyse(analysiskeywordlanguagemismatch.Run)},
+	"analyse campaign discovery":                    {DocShort: analysiscampaigndiscovery.DocShort, Run: analyse(analysiscampaigndiscovery.Run)},
+	"analyse keywords all-paused":                   {DocShort: analysiskeywordallpaused.DocShort, Run: analyse(analysiskeywordallpaused.Run)},
+	"analyse adgroups searchmatch-high-default-bid": {DocShort: analysisadgroupsearchmatch.DocShort, Run: analyse(analysisadgroupsearchmatch.Run)},
 	"analyse": {DocShort: "run all analysers", Run: analyse(
 		analysiskeyworddiscovery.Run,
 		analysiskeywordcannibalisation.Run,
 		analysiskeywordlanguagemismatch.Run,
 		analysiscampaigndiscovery.Run,
 		analysiskeywordallpaused.Run,
+		analysisadgroupsearchmatch.Run,
 	)},
 }
 
