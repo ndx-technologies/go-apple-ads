@@ -15,6 +15,7 @@ import (
 	analysiskeywordallpaused "github.com/ndx-technologies/go-apple-ads/analysis/keyword_all-paused"
 	analysiskeywordcannibalisation "github.com/ndx-technologies/go-apple-ads/analysis/keyword_cannibalisation"
 	analysiskeyworddiscovery "github.com/ndx-technologies/go-apple-ads/analysis/keyword_discovery"
+	analysiskeywordduplicatewhitespace "github.com/ndx-technologies/go-apple-ads/analysis/keyword_duplicate-whitespace"
 	analysiskeywordlanguagemismatch "github.com/ndx-technologies/go-apple-ads/analysis/keyword_language_mismatch"
 	appleadsgetupdatecommandscsv "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_get_update_commands_csv"
 	appleadsmergecsv "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_merge_csv"
@@ -47,6 +48,7 @@ var commands = map[string]CommandInfo{
 	"analyse keywords discovery":                    {DocShort: analysiskeyworddiscovery.DocShort, Run: analyse(analysiskeyworddiscovery.Run)},
 	"analyse keywords cannibalisation":              {DocShort: analysiskeywordcannibalisation.DocShort, Run: analyse(analysiskeywordcannibalisation.Run)},
 	"analyse keywords language-mismatch":            {DocShort: analysiskeywordlanguagemismatch.DocShort, Run: analyse(analysiskeywordlanguagemismatch.Run)},
+	"analyse keywords duplicate-whitespace":         {DocShort: analysiskeywordduplicatewhitespace.DocShort, Run: analyse(analysiskeywordduplicatewhitespace.Run)},
 	"analyse campaign discovery":                    {DocShort: analysiscampaigndiscovery.DocShort, Run: analyse(analysiscampaigndiscovery.Run)},
 	"analyse keywords all-paused":                   {DocShort: analysiskeywordallpaused.DocShort, Run: analyse(analysiskeywordallpaused.Run)},
 	"analyse adgroups searchmatch-high-default-bid": {DocShort: analysisadgroupsearchmatch.DocShort, Run: analyse(analysisadgroupsearchmatch.Run)},
@@ -54,6 +56,7 @@ var commands = map[string]CommandInfo{
 		analysiskeyworddiscovery.Run,
 		analysiskeywordcannibalisation.Run,
 		analysiskeywordlanguagemismatch.Run,
+		analysiskeywordduplicatewhitespace.Run,
 		analysiscampaigndiscovery.Run,
 		analysiskeywordallpaused.Run,
 		analysisadgroupsearchmatch.Run,
