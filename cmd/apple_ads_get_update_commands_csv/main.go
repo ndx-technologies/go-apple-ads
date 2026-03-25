@@ -6,8 +6,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 
 	goappleads "github.com/ndx-technologies/go-apple-ads"
+	"github.com/ndx-technologies/slicex"
 )
 
 func campaignKeywordsPageURL(appID string, campaignID goappleads.CampaignID) string {
@@ -45,12 +47,12 @@ func Run(args []string) {
 
 	updater := goappleads.KeywordUpdater{From: *fromKeywordsDB, To: *toKeywordsDB}
 
-	camapigns := make(map[goappleads.CampaignID]struct{})
+	var camapigns []goappleads.CampaignID
 	regular := make(map[goappleads.CampaignID][]goappleads.KeywordCommand)
 	negative := make(map[goappleads.CampaignID][]goappleads.KeywordCommand)
 
 	for _, cmd := range updater.UpdateCommands() {
-		camapigns[cmd.CampaignID] = struct{}{}
+		camapigns = append(camapigns, cmd.CampaignID)
 		if cmd.IsNegative {
 			negative[cmd.CampaignID] = append(negative[cmd.CampaignID], cmd)
 		} else {
@@ -58,7 +60,10 @@ func Run(args []string) {
 		}
 	}
 
-	for campaignID := range camapigns {
+	camapigns = slicex.Unique(camapigns)
+	slices.Sort(camapigns)
+
+	for _, campaignID := range camapigns {
 		campaign := fromConfig.GetCampaign(campaignID)
 
 		if campaign.IsZero() {

@@ -7,7 +7,7 @@ import (
 type CampaignConfig struct {
 	ID        CampaignID      `json:"id"`
 	Name      string          `json:"name"`
-	AdGroups  []AdGroupConfig `json:"ad_groups"`
+	AdGroups  []AdGroupConfig `json:"adgroups"`
 	Countries []geo.Country   `json:"countries"`
 	Status    Status          `json:"status"`
 }
