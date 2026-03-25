@@ -113,7 +113,7 @@ def main():
     records = []
     for filepath in sorted(keywords_dir.glob("*.csv")):
         stem = filepath.stem
-        if any(s in stem for s in ("_negative", "_discovery", "_competitors")):
+        if any(s in stem for s in ("_negative")):
             continue
         country = stem
 
