@@ -14,6 +14,7 @@ import (
 	analysiscampaigndiscovery "github.com/ndx-technologies/go-apple-ads/analysis/campaign_discovery"
 	analysiskeywordallpaused "github.com/ndx-technologies/go-apple-ads/analysis/keyword_all-paused"
 	analysiskeywordcannibalisation "github.com/ndx-technologies/go-apple-ads/analysis/keyword_cannibalisation"
+	analysiskeywordcptoutliers "github.com/ndx-technologies/go-apple-ads/analysis/keyword_cpt_outliers"
 	analysiskeyworddiscovery "github.com/ndx-technologies/go-apple-ads/analysis/keyword_discovery"
 	analysiskeywordduplicatewhitespace "github.com/ndx-technologies/go-apple-ads/analysis/keyword_duplicate-whitespace"
 	analysiskeywordlanguagemismatch "github.com/ndx-technologies/go-apple-ads/analysis/keyword_language_mismatch"
@@ -47,6 +48,7 @@ var commands = map[string]CommandInfo{
 	"stats searchterms":                             {DocShort: statssearchterms.DocShort, Run: statssearchterms.Run},
 	"analyse keywords discovery":                    {DocShort: analysiskeyworddiscovery.DocShort, Run: analyse(analysiskeyworddiscovery.Run)},
 	"analyse keywords cannibalisation":              {DocShort: analysiskeywordcannibalisation.DocShort, Run: analyse(analysiskeywordcannibalisation.Run)},
+	"analyse keywords cpt-outliers":                 {DocShort: analysiskeywordcptoutliers.DocShort, Run: analyse(analysiskeywordcptoutliers.Run)},
 	"analyse keywords language-mismatch":            {DocShort: analysiskeywordlanguagemismatch.DocShort, Run: analyse(analysiskeywordlanguagemismatch.Run)},
 	"analyse keywords duplicate-whitespace":         {DocShort: analysiskeywordduplicatewhitespace.DocShort, Run: analyse(analysiskeywordduplicatewhitespace.Run)},
 	"analyse campaign discovery":                    {DocShort: analysiscampaigndiscovery.DocShort, Run: analyse(analysiscampaigndiscovery.Run)},
@@ -55,6 +57,7 @@ var commands = map[string]CommandInfo{
 	"analyse": {DocShort: "run all analysers", Run: analyse(
 		analysiskeyworddiscovery.Run,
 		analysiskeywordcannibalisation.Run,
+		analysiskeywordcptoutliers.Run,
 		analysiskeywordlanguagemismatch.Run,
 		analysiskeywordduplicatewhitespace.Run,
 		analysiscampaigndiscovery.Run,
