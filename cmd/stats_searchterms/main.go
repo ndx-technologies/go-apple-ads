@@ -922,6 +922,7 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 			}
 		}
 		existStr = fmtx.DimS(existStr)
+		hasKeywordInConfig := len(keywordIDs) > 0
 
 		goodPerf := cvrRatio >= 1.2 || (cpiRatio > 0 && cpiRatio <= 0.8)
 		badPerf := (cvrRatio > 0 && cvrRatio < 0.8) && (cpiRatio == 0 || cpiRatio > 1.2)
@@ -930,9 +931,9 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 		actionStr := fmtx.DimS("monitor")
 		if confidence >= 0.75 {
 			switch {
-			case isAllPaused && goodPerf:
+			case hasKeywordInConfig && isAllPaused && goodPerf:
 				actionStr = fmtx.YellowS("unpause")
-			case (hasExact || hasBroad) && e.avgShare < 0.3 && a.Rank <= 3 && a.SearchPopularity >= 3:
+			case !hasKeywordInConfig && e.avgShare < 0.3 && a.Rank <= 3 && a.SearchPopularity >= 3:
 				if badPerf {
 					actionStr = fmtx.YellowS("add?") // opportunity but converting poorly
 				} else {
