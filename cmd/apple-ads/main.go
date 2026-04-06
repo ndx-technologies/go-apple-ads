@@ -25,6 +25,7 @@ import (
 	statscampaigns "github.com/ndx-technologies/go-apple-ads/cmd/stats_campaigns"
 	statskeywords "github.com/ndx-technologies/go-apple-ads/cmd/stats_keywords"
 	statssearchterms "github.com/ndx-technologies/go-apple-ads/cmd/stats_searchterms"
+	statuskeywords "github.com/ndx-technologies/go-apple-ads/cmd/status_keywords"
 )
 
 type CommandInfo struct {
@@ -40,6 +41,7 @@ Use this toolkit to setup your AI-driven Apple Ads GitOps.
 
 var commands = map[string]CommandInfo{
 	"timeline":                                      {DocShort: appleadstimeline.DocShort, Run: appleadstimeline.Run},
+	"status keywords":                               {DocShort: statuskeywords.DocShort, Run: statuskeywords.Run},
 	"merge-csv":                                     {DocShort: appleadsmergecsv.DocShort, Run: appleadsmergecsv.Run},
 	"get update-commands-csv":                       {DocShort: appleadsgetupdatecommandscsv.DocShort, Run: appleadsgetupdatecommandscsv.Run},
 	"stats campaigns":                               {DocShort: statscampaigns.DocShort, Run: statscampaigns.Run},
