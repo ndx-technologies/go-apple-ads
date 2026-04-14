@@ -1,11 +1,9 @@
-Report Name, apple_ads_search_term_impression_share_by_day_merged
-Date Range, 2026-01-25 - 2026-02-23
-Time Granularity, DAILY
-Org Id, 1234
-Time Zone, UTC
-Currency, USD
-Impression Share reports reflect data for campaigns on the App Store only.Impression Share reports reflect data for campaigns on the App Store only.
-
-Day,App Name,App ID,Country or Region,Search Term,Spend,Taps,Installs (Total),Impressions,Impression Share,Rank,Search Popularity
-2026-02-03,NDX AI Shopping Assistant,6738306589,Brazil,farmacia sao joao,0.19,1,1,228,41-50%,1,3
-2026-02-04,NDX AI Shopping Assistant,6738306589,Brazil,farmacia sao joao,0.19,1,1,228,41-50%,>5,3
+Download Time:,2026:04:14 08:33
+Report Name:,apple_ads_search_term_impression_share_by_day_merged
+Report Type:,Daily Search Term Impression Share (All Ad Positions)
+Date Range:,2026-01-25 - 2026-02-23
+Filters applied:,
+Parameters applied:,Timezone: UTC; Currency: USD; Number format: en_US;
+Day,App Name,App ID,Country or Region,Search Term,Search Popularity (1-5),Impression Share,Rank,Spend,Impressions,Taps,Campaign Group ID,Installs (Total)
+2026-02-03,NDX AI Shopping Assistant,6738306589,Brazil,farmacia sao joao,3,41-50%,1,$0.19,228,1,8906040,1
+2026-02-04,NDX AI Shopping Assistant,6738306589,Brazil,farmacia sao joao,3,41-50%,>5,$0.19,228,1,8906040,1

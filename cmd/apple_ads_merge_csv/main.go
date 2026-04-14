@@ -1,7 +1,6 @@
 package appleadsmergecsv
 
 import (
-	"bufio"
 	"encoding/csv"
 	"flag"
 	"io"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	goappleads "github.com/ndx-technologies/go-apple-ads"
 )
 
 func rowKey(groupByColumn map[string]bool, header, row []string) string {
@@ -24,114 +25,6 @@ func rowKey(groupByColumn map[string]bool, header, row []string) string {
 		b.WriteByte('\x00')
 	}
 	return b.String()
-}
-
-type metadata struct {
-	ReportName      string
-	TimeGranularity string
-	OrgID           string
-	From, Until     time.Time
-	TimeZone        string
-	Currency        string
-	AdPlacement     string
-	Comment         string
-}
-
-// ReadFrom reads metadata key-value lines from r until an empty line or CSV header.
-// Returns the unconsumed CSV header line (if any) so the caller can prepend it back.
-func (m *metadata) ReadFrom(r *bufio.Reader) (string, error) {
-	for {
-		line, err := r.ReadString('\n')
-		if err == io.EOF {
-			return "", nil
-		}
-		if err != nil {
-			return "", err
-		}
-		rawLine := line
-		line = strings.TrimSpace(line)
-		line = strings.TrimPrefix(line, "\xef\xbb\xbf")
-		if line == "" {
-			return "", nil
-		}
-		k, v, ok := strings.Cut(line, ", ")
-		if !ok {
-			// line has no ", " — either a comment or the CSV header row.
-			// If it has many commas it's the CSV header; return it unconsumed.
-			if strings.Count(line, ",") >= 2 {
-				return rawLine, nil
-			}
-			if m.Comment != "" && m.Comment != line {
-				m.Comment += "\n"
-			}
-			m.Comment += line
-			continue
-		}
-		switch k {
-		case "Report Name":
-			m.ReportName = v
-		case "Date Range":
-			if from, until, ok := strings.Cut(v, " - "); ok {
-				if t, err := time.Parse(time.DateOnly, strings.TrimSpace(from)); err == nil {
-					m.From = t
-				}
-				if t, err := time.Parse(time.DateOnly, strings.TrimSpace(until)); err == nil {
-					m.Until = t
-				}
-			}
-		case "Time Granularity":
-			m.TimeGranularity = v
-		case "Org Id":
-			m.OrgID = v
-		case "Time Zone":
-			m.TimeZone = v
-		case "Currency":
-			m.Currency = v
-		case "Ad Placement":
-			m.AdPlacement = v
-		default:
-			slog.Error("header: unknown key, skipping", "k", k, "v", v)
-		}
-	}
-}
-
-func (m metadata) Write(w io.StringWriter) {
-	if m.ReportName != "" {
-		w.WriteString("Report Name, ")
-		w.WriteString(m.ReportName)
-		w.WriteString("\n")
-	}
-	if !m.From.IsZero() && !m.Until.IsZero() {
-		w.WriteString("Date Range, ")
-		w.WriteString(m.From.Format(time.DateOnly))
-		w.WriteString(" - ")
-		w.WriteString(m.Until.Format(time.DateOnly))
-		w.WriteString("\n")
-	}
-	if m.TimeGranularity != "" {
-		w.WriteString("Time Granularity, ")
-		w.WriteString(m.TimeGranularity)
-		w.WriteString("\n")
-	}
-	if m.OrgID != "" {
-		w.WriteString("Org Id, ")
-		w.WriteString(m.OrgID)
-		w.WriteString("\n")
-	}
-	if m.TimeZone != "" {
-		w.WriteString("Time Zone, ")
-		w.WriteString(m.TimeZone)
-		w.WriteString("\n")
-	}
-	if m.Currency != "" {
-		w.WriteString("Currency, ")
-		w.WriteString(m.Currency)
-		w.WriteString("\n")
-	}
-	if m.Comment != "" {
-		w.WriteString(m.Comment)
-		w.WriteString("\n")
-	}
 }
 
 const DocShort string = "merge Apple Ads Insights CSV files "
@@ -162,7 +55,7 @@ func Run(args []string) {
 	}
 
 	var (
-		meta   metadata
+		meta   goappleads.CSVMetadata
 		header []string
 	)
 
@@ -183,44 +76,28 @@ func Run(args []string) {
 		}
 		defer f.Close()
 
-		br := bufio.NewReader(f)
-
-		peek, err := br.Peek(50)
-		if err != nil {
-			slog.Error("cannot peek file", "file", e.Name(), "error", err)
-			continue
-		}
-		peekStr := strings.TrimPrefix(string(peek), "\xef\xbb\xbf")
-		hasMetadata := strings.HasPrefix(peekStr, "Report Name")
-
-		var csvReader io.Reader = br
-		if hasMetadata {
-			leftover, err := meta.ReadFrom(br)
-			if err != nil {
-				slog.Error("cannot read metadata", "file", e.Name(), "error", err)
-				continue
-			}
-			if leftover != "" {
-				csvReader = io.MultiReader(strings.NewReader(leftover), br)
-			}
-		}
-
-		r := csv.NewReader(csvReader)
+		r := csv.NewReader(f)
 		r.FieldsPerRecord = -1
 		r.LazyQuotes = true
 
-		if headerCurrent, err := r.Read(); err != nil {
-			slog.Error("cannot read header", "file", e.Name(), "error", err)
+		metaCurrent, headerCurrent, err := goappleads.ReadCSVMetadata(r)
+		if err != nil {
+			slog.Error("cannot read metadata/header", "file", e.Name(), "error", err)
 			continue
-		} else {
-			if header != nil && !slices.Equal(header, headerCurrent) {
-				slog.Error("header mismatch, skipping file", "file", e.Name())
-				continue
-			}
-			for i := range headerCurrent {
-				headerCurrent[i] = strings.TrimSpace(headerCurrent[i])
-			}
-			header = headerCurrent
+		}
+		if header != nil && !slices.Equal(header, headerCurrent) {
+			slog.Error("header mismatch, skipping file", "file", e.Name())
+			continue
+		}
+		header = headerCurrent
+		if meta.ReportName == "" {
+			meta.ReportName = metaCurrent.ReportName
+		}
+		if meta.TimeZone == "" {
+			meta.TimeZone = metaCurrent.TimeZone
+		}
+		if meta.Currency == "" {
+			meta.Currency = metaCurrent.Currency
 		}
 
 		// trim header
@@ -262,7 +139,10 @@ func Run(args []string) {
 			seen[ck] = struct{}{}
 
 			// date range
-			ts, err := time.Parse(time.DateOnly, row[0])
+			ts, err := time.Parse("01/02/2006", row[0])
+			if err != nil {
+				ts, err = time.Parse(time.DateOnly, row[0])
+			}
 			if err != nil {
 				slog.Error("cannot parse date", "value", row[0], "error", err, "file", e.Name())
 				continue
@@ -282,7 +162,7 @@ func Run(args []string) {
 				if v == "" || v == "--" || v == "null" || groupByColumn[header[i]] {
 					continue
 				}
-				v, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
+				v, err := strconv.ParseFloat(strings.ReplaceAll(strings.TrimPrefix(strings.TrimSpace(v), "$"), ",", ""), 64)
 				if err != nil {
 					slog.Error("cannot parse float", "value", v, "error", err, "file", e.Name())
 				}

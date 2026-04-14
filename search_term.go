@@ -64,50 +64,26 @@ func ParseSearchTermInfoFromCSV(r io.Reader) iter.Seq[SearchTermInfo] {
 		csvr.FieldsPerRecord = -1
 		csvr.LazyQuotes = true
 
-		// scan until CSV header row (starts with "Day")
-		var timeGranularity, timeZone, currency string
-		var header []string
-		for {
-			rec, err := csvr.Read()
-			if err != nil {
-				slog.Error("failed to read CSV header", "error", err)
-				return
-			}
-			if len(rec) >= 2 {
-				switch rec[0] {
-				case "Time Granularity":
-					timeGranularity = strings.TrimSpace(rec[1])
-				case "Time Zone":
-					timeZone = strings.TrimSpace(rec[1])
-				case "Currency":
-					currency = strings.TrimSpace(rec[1])
-				}
-			}
-			if len(rec) > 0 && strings.TrimSpace(rec[0]) == "Day" {
-				header = rec
-				for i := range header {
-					header[i] = strings.TrimSpace(header[i])
-				}
-				break
-			}
-		}
-
-		if timeGranularity != "DAILY" || timeZone != "UTC" || currency != "USD" {
-			slog.Error("unsupported time granularity, time zone, or currency", "timeGranularity", timeGranularity, "timeZone", timeZone, "currency", currency)
+		m, header, err := ReadCSVMetadata(csvr)
+		if err != nil {
+			slog.Error("failed to read CSV header", "error", err)
 			return
 		}
-
 		colIndex := make(map[string]int, len(header))
 		for i, h := range header {
 			colIndex[h] = i
 		}
+		if m.TimeZone != "UTC" || m.Currency != "USD" {
+			slog.Error("unsupported time zone or currency", "timeZone", m.TimeZone, "currency", m.Currency)
+			return
+		}
 
 		for {
 			rec, err := csvr.Read()
 			if err != nil {
 				break
 			}
-			if len(rec) < len(header) {
+			if len(rec) < len(colIndex) {
 				continue
 			}
 
@@ -129,7 +105,7 @@ func ParseSearchTermInfoFromCSV(r io.Reader) iter.Seq[SearchTermInfo] {
 				return
 			}
 
-			spend, err := strconv.ParseFloat(rec[colIndex["Spend"]], 64)
+			spend, err := strconv.ParseFloat(strings.TrimPrefix(rec[colIndex["Spend"]], "$"), 64)
 			if err != nil {
 				slog.Error("failed to parse Spend", "error", err)
 				return
@@ -149,7 +125,11 @@ func ParseSearchTermInfoFromCSV(r io.Reader) iter.Seq[SearchTermInfo] {
 				slog.Error("failed to parse Impressions", "error", err)
 				return
 			}
-			searchPop, err := strconv.Atoi(rec[colIndex["Search Popularity"]])
+			spopCol := colIndex["Search Popularity (1-5)"]
+			if spopCol == 0 {
+				spopCol = colIndex["Search Popularity"]
+			}
+			searchPop, err := strconv.Atoi(rec[spopCol])
 			if err != nil {
 				slog.Error("failed to parse Search Popularity", "error", err)
 				return
@@ -191,40 +171,18 @@ func ParseSearchTermsStatsCSV(r io.Reader) iter.Seq[SearchTermRow] {
 		r := csv.NewReader(r)
 		r.FieldsPerRecord = -1
 
-		var timeGranularity, timeZone, currency string
-		var header []string
-		for {
-			rec, err := r.Read()
-			if err != nil {
-				slog.Error("failed to read CSV header", "error", err)
-				return
-			}
-			if len(rec) >= 2 {
-				switch rec[0] {
-				case "Time Granularity":
-					timeGranularity = strings.TrimSpace(rec[1])
-				case "Time Zone":
-					timeZone = strings.TrimSpace(rec[1])
-				case "Currency":
-					currency = strings.TrimSpace(rec[1])
-				}
-			}
-			if len(rec) > 0 && rec[0] == "Day" {
-				header = rec
-				break
-			}
-		}
-		if timeGranularity != "DAILY" || timeZone != "UTC" || currency != "USD" {
-			slog.Error("unsupported time granularity, time zone, or currency", "timeGranularity", timeGranularity, "timeZone", timeZone, "currency", currency)
+		m, header, err := ReadCSVMetadata(r)
+		if err != nil {
+			slog.Error("failed to read CSV header", "error", err)
 			return
 		}
-		if len(header) == 0 {
-			slog.Error("no header found")
-			return
-		}
-		colIndex := make(map[string]int)
+		colIndex := make(map[string]int, len(header))
 		for i, h := range header {
 			colIndex[h] = i
+		}
+		if m.TimeZone != "UTC" && m.TimeZone != "ORTZ" || m.Currency != "USD" {
+			slog.Error("unsupported time zone or currency", "timeZone", m.TimeZone, "currency", m.Currency)
+			return
 		}
 
 		for {
@@ -232,12 +190,12 @@ func ParseSearchTermsStatsCSV(r io.Reader) iter.Seq[SearchTermRow] {
 			if err != nil {
 				break
 			}
-			imp, err := strconv.Atoi(rec[colIndex["Impressions"]])
+			imp, err := strconv.Atoi(strings.ReplaceAll(strings.TrimSpace(rec[colIndex["Impressions"]]), ",", ""))
 			if err != nil {
 				slog.Error("failed to parse Impressions", "error", err)
 				return
 			}
-			sp, err := strconv.ParseFloat(rec[colIndex["Spend"]], 64)
+			sp, err := strconv.ParseFloat(strings.ReplaceAll(strings.TrimPrefix(strings.TrimSpace(rec[colIndex["Spend"]]), "$"), ",", ""), 64)
 			if err != nil {
 				slog.Error("failed to parse Spend", "error", err)
 				return
@@ -253,16 +211,19 @@ func ParseSearchTermsStatsCSV(r io.Reader) iter.Seq[SearchTermRow] {
 				return
 			}
 
-			ts, err := time.Parse(time.DateOnly, rec[colIndex["Day"]])
+			ts, err := time.Parse(time.DateOnly, rec[colIndex["Date"]])
 			if err != nil {
-				slog.Error("failed to parse Day", "error", err)
+				ts, err = time.Parse("01/02/2006", rec[colIndex["Date"]])
+			}
+			if err != nil {
+				slog.Error("failed to parse Date", "error", err)
 				return
 			}
 
 			row := SearchTermRow{
 				Day:         ts,
 				CampaignID:  CampaignID(rec[colIndex["Campaign ID"]]),
-				AdGroupID:   AdGroupID(rec[colIndex["Ad group ID"]]),
+				AdGroupID:   AdGroupID(rec[colIndex["Ad Group ID"]]),
 				KeywordID:   KeywordID(rec[colIndex["Keyword ID"]]),
 				SearchTerm:  rec[colIndex["Search Term"]],
 				MatchSource: rec[colIndex["Search Term Match Source"]],
