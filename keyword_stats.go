@@ -90,7 +90,7 @@ func ParseKeywordStatsCSV(r io.Reader) iter.Seq[KeywordRow] {
 				slog.Error("failed to parse Taps", "error", err)
 				return
 			}
-			inst, err := strconv.Atoi(rec[colIndex["Installs (Tap-Through)"]])
+			inst, err := strconv.Atoi(rec[colIndex["Installs (Total)"]])
 			if err != nil {
 				slog.Error("failed to parse Installs", "error", err)
 				return

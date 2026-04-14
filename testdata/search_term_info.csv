@@ -6,6 +6,6 @@ Time Zone, UTC
 Currency, USD
 Impression Share reports reflect data for campaigns on the App Store only.Impression Share reports reflect data for campaigns on the App Store only.
 
-Day,App Name,App ID,Country or Region,Search Term,Spend,Taps,Installs (Tap-Through),Impressions,Impression Share,Rank,Search Popularity
+Day,App Name,App ID,Country or Region,Search Term,Spend,Taps,Installs (Total),Impressions,Impression Share,Rank,Search Popularity
 2026-02-03,NDX AI Shopping Assistant,6738306589,Brazil,farmacia sao joao,0.19,1,1,228,41-50%,1,3
 2026-02-04,NDX AI Shopping Assistant,6738306589,Brazil,farmacia sao joao,0.19,1,1,228,41-50%,>5,3

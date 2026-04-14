@@ -94,12 +94,11 @@ func ParseCampaignsStatsCSV(r io.Reader) iter.Seq[CampaignRow] {
 				slog.Error("failed to parse Taps", "error", err)
 				return
 			}
-			inst, err := strconv.Atoi(rec[colIndex["Installs (Tap-Through)"]])
+			inst, err := strconv.Atoi(rec[colIndex["Installs (Total)"]])
 			if err != nil {
 				slog.Error("failed to parse Installs", "error", err)
 				return
 			}
-
 			ts, err := time.Parse(time.DateOnly, rec[colIndex["Day"]])
 			if err != nil {
 				slog.Error("failed to parse Day", "error", err)
