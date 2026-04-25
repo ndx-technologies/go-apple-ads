@@ -50,9 +50,6 @@ func Run(args []string) {
 	flag.StringVar(&outDir, "out-dir", "", "directory for extracted csv outputs (default same dir as xlsx)")
 	flag.Parse(args)
 
-	if workbookPath == "" {
-		log.Fatal("path is required")
-	}
 	if outDir == "" {
 		outDir = filepath.Dir(workbookPath)
 	}
