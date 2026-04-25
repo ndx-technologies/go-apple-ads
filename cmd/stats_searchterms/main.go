@@ -197,6 +197,40 @@ func isKeywordNegative(kws []goappleads.KeywordInfo) bool {
 	return false
 }
 
+func hasPositiveKeyword(kws []goappleads.KeywordInfo) bool {
+	for _, k := range kws {
+		if !k.IsNegative {
+			return true
+		}
+	}
+	return false
+}
+
+func filterKeywordsToAggScope(kws []goappleads.KeywordInfo, agg Agg) []goappleads.KeywordInfo {
+	if len(agg.AdGroups) == 0 && len(agg.Campaigns) == 0 {
+		return kws
+	}
+
+	filtered := make([]goappleads.KeywordInfo, 0, len(kws))
+	for _, kw := range kws {
+		if _, ok := agg.AdGroups[kw.AdGroupID]; ok {
+			filtered = append(filtered, kw)
+			continue
+		}
+		if _, ok := agg.Campaigns[kw.CampaignID]; ok {
+			filtered = append(filtered, kw)
+		}
+	}
+	return filtered
+}
+
+func shouldHideNegativeKeywords(kws []goappleads.KeywordInfo, showNegativeKeywords bool) bool {
+	if showNegativeKeywords {
+		return false
+	}
+	return len(kws) > 0 && isKeywordNegative(kws) && !hasPositiveKeyword(kws)
+}
+
 func printSearchTermsOverview(w io.StringWriter, searchTerms []goappleads.SearchTermRow) {
 	fmtx.HeaderTo(w, "SEARCH TERMS — OVERVIEW")
 	byTerm := aggregateSearchTerms(searchTerms)
@@ -228,8 +262,8 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 		data Agg
 	}
 	for t, v := range byTerm {
-		if keywords := keywordsDB.GetKeywordsByText(t); v.Inst > 0 && t != "Low Volume" && len(keywords) > 0 {
-			if !showNegativeKeywords && isKeywordNegative(keywords) {
+		if keywords := filterKeywordsToAggScope(keywordsDB.GetKeywordsByText(t), v); v.Inst > 0 && t != "Low Volume" && len(keywords) > 0 {
+			if shouldHideNegativeKeywords(keywords, showNegativeKeywords) {
 				continue
 			}
 			converting = append(converting, struct {
@@ -285,15 +319,8 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 	tw.WriteHeaderLine()
 
 	for i, item := range converting[:min(n, len(converting))] {
-		keywords := keywordsDB.GetKeywordsByText(item.term)
-		isExact := false
-		for _, k := range keywords {
-			if !k.IsNegative {
-				isExact = true
-				break
-			}
-			continue
-		}
+		keywords := filterKeywordsToAggScope(keywordsDB.GetKeywordsByText(item.term), item.data)
+		isExact := hasPositiveKeyword(keywords)
 
 		cpi := item.data.Spend / float64(item.data.Inst)
 		cvr := divSafe(item.data.Inst, item.data.Taps)
@@ -310,7 +337,7 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 			}
 		}
 
-		if isKeywordNegative(keywords) {
+		if len(keywords) > 0 && isKeywordNegative(keywords) && !hasPositiveKeyword(keywords) {
 			action += " " + fmtx.RedS("(currently negated)")
 		}
 
@@ -360,15 +387,8 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 
 	great := 0
 	for _, c := range converting {
-		keywords := keywordsDB.GetKeywordsByText(c.term)
-		isExact := false
-		for _, k := range keywords {
-			if !k.IsNegative {
-				isExact = true
-				break
-			}
-			continue
-		}
+		keywords := filterKeywordsToAggScope(keywordsDB.GetKeywordsByText(c.term), c.data)
+		isExact := hasPositiveKeyword(keywords)
 		if isExact {
 			continue
 		}
@@ -400,7 +420,7 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 		if v.Inst == 0 {
 			continue
 		}
-		if keywords := keywordsDB.GetKeywordsByText(t); len(keywords) > 0 {
+		if keywords := filterKeywordsToAggScope(keywordsDB.GetKeywordsByText(t), v); len(keywords) > 0 {
 			continue
 		}
 		candidates = append(candidates, candidate{t, v})
@@ -524,8 +544,8 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 	var wasteful []TermInfo
 
 	for t, v := range aggregateSearchTerms(searchTerms) {
-		if keywords := keywordsDB.GetKeywordsByText(t); v.Inst == 0 && v.Spend >= minSpend && t != "Low Volume" && len(keywords) > 0 {
-			if !showNegativeKeywords && isKeywordNegative(keywords) {
+		if keywords := filterKeywordsToAggScope(keywordsDB.GetKeywordsByText(t), v); v.Inst == 0 && v.Spend >= minSpend && t != "Low Volume" && len(keywords) > 0 {
+			if shouldHideNegativeKeywords(keywords, showNegativeKeywords) {
 				continue
 			}
 			wasteful = append(wasteful, TermInfo{term: t, data: v})

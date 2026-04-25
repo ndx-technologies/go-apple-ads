@@ -112,7 +112,7 @@ func ratioVsBaseline(value, baseline float64, higherIsBetter bool, ok bool) stri
 	}
 }
 
-func isKeywordNegative(kws []goappleads.KeywordInfo) bool {
+func hasNegativeVariant(kws []goappleads.KeywordInfo) bool {
 	for _, k := range kws {
 		if k.IsNegative {
 			return true
@@ -133,6 +133,7 @@ func aggregateByKeywords(rows []goappleads.KeywordRow) map[KeywordID]Agg {
 		if a.Days == nil {
 			a.Days = make(map[time.Time]struct{})
 			a.AdGroups = make(map[AdGroupID]struct{})
+			a.Campaigns = make(map[CampaignID]struct{})
 			a.Bids = make(map[float64]struct{})
 		}
 		a.Spend += r.Spend
@@ -142,6 +143,9 @@ func aggregateByKeywords(rows []goappleads.KeywordRow) map[KeywordID]Agg {
 		a.Days[r.Day] = struct{}{}
 		if r.AdGroupID != "" {
 			a.AdGroups[r.AdGroupID] = struct{}{}
+		}
+		if r.CampaignID != "" {
+			a.Campaigns[r.CampaignID] = struct{}{}
 		}
 		a.Bids[r.MaxCPTBid] = struct{}{}
 		agg[key] = a
@@ -154,6 +158,154 @@ type KeywordStats struct {
 	stats   Agg
 }
 
+func printEfficiencyRanking(keywords []goappleads.KeywordRow, overall goappleads.BaselineMetrics, n int, showNegativeKeywords, showID, showPaused bool, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) {
+	fmtx.HeaderTo(os.Stdout, "KEYWORD EFFICIENCY (TTR * CR = INSTALLS / IMPRESSIONS)")
+	fmt.Println(" (highest and lowest installs / impressions; lowest ties break by impressions, then spend)")
+
+	var ranked []KeywordStats
+	for keywordID, stats := range aggregateByKeywords(keywords) {
+		if stats.Imp <= 0 {
+			continue
+		}
+		keyword := keywordsDB.GetKeywordInfo(keywordID)
+		if !showNegativeKeywords && keyword.IsNegative {
+			continue
+		}
+		ranked = append(ranked, KeywordStats{keyword: keywordID, stats: stats})
+	}
+
+	if len(ranked) == 0 {
+		fmt.Println(" (none)")
+		return
+	}
+
+	sort.Slice(ranked, func(i, j int) bool {
+		li := divSafe(ranked[i].stats.Inst, ranked[i].stats.Imp)
+		lj := divSafe(ranked[j].stats.Inst, ranked[j].stats.Imp)
+		if li != lj {
+			return li > lj
+		}
+		if ranked[i].stats.Inst != ranked[j].stats.Inst {
+			return ranked[i].stats.Inst > ranked[j].stats.Inst
+		}
+		if ranked[i].stats.Imp != ranked[j].stats.Imp {
+			return ranked[i].stats.Imp > ranked[j].stats.Imp
+		}
+		if ranked[i].stats.Spend != ranked[j].stats.Spend {
+			return ranked[i].stats.Spend > ranked[j].stats.Spend
+		}
+		return ranked[i].keyword < ranked[j].keyword
+	})
+
+	maxImp := 0
+	for _, item := range ranked {
+		if item.stats.Imp > maxImp {
+			maxImp = item.stats.Imp
+		}
+	}
+
+	tw := fmtx.TableWriter{
+		Indent:     "  ",
+		Out:        os.Stdout,
+		ColDefault: columnDefaults,
+		Cols: []fmtx.TablCol{
+			{Header: "#"},
+			{Header: "Keyword"},
+			{Header: "Campaign"},
+			{Header: "Ad Group"},
+			{Header: "Inst/Imp", Width: 9, Alignment: fmtx.AlignRight},
+			{Header: "CTR"},
+			{Header: "CVR"},
+			{Header: "Conf"},
+			{Header: "Imp"},
+			{Header: "Taps"},
+			{Header: "Inst"},
+			{Header: "Spend"},
+			{Header: "Impressions", Width: 12},
+		},
+	}
+	if showID {
+		tw.Cols = slices.Insert(tw.Cols, 1, fmtx.TablCol{Header: "ID"})
+	}
+	if showNegativeKeywords {
+		tw.Cols = append(tw.Cols, fmtx.TablCol{Header: "", Width: 1})
+	}
+	if showPaused {
+		tw.Cols = append(tw.Cols, fmtx.TablCol{Header: "", Width: 1})
+	}
+	tw.WriteHeader()
+	tw.WriteHeaderLine()
+
+	topEnd := min(n, len(ranked))
+	worstStart := max(topEnd, len(ranked)-n)
+
+	for i := range topEnd {
+		printEfficiencyRow(tw, i, ranked[i], overall, maxImp, showID, showNegativeKeywords, showPaused, config, keywordsDB)
+	}
+
+	if worstStart > topEnd {
+		fmt.Printf(fmtx.DimS("\n  ... %d keywords skipped ...\n\n"), worstStart-topEnd)
+	}
+
+	for i := worstStart; i < len(ranked); i++ {
+		printEfficiencyRow(tw, i, ranked[i], overall, maxImp, showID, showNegativeKeywords, showPaused, config, keywordsDB)
+	}
+
+	fmt.Println()
+}
+
+func printEfficiencyRow(tw fmtx.TableWriter, i int, item KeywordStats, overall goappleads.BaselineMetrics, maxImp int, showID, showNegativeKeywords, showPaused bool, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) {
+	keyword := keywordsDB.GetKeywordInfo(item.keyword)
+	campaign := config.GetCampaign(keyword.CampaignID)
+
+	adgroups := make([]string, 0, len(item.stats.AdGroups))
+	for ag := range item.stats.AdGroups {
+		adgroup := config.GetAdGroup(ag)
+		adgroups = append(adgroups, adgroup.Name)
+	}
+	sort.Strings(adgroups)
+
+	instPerImp := divSafe(item.stats.Inst, item.stats.Imp)
+	ctr := divSafe(item.stats.Taps, item.stats.Imp)
+	cvr := divSafe(item.stats.Inst, item.stats.Taps)
+	conf := confidenceFromPZero(pZeroInstalls(item.stats.Taps, overall.CVR)).Format()
+
+	row := []string{
+		fmt.Sprintf("%d.", i+1),
+		keyword.Label(),
+		campaign.Name,
+		strings.Join(adgroups, ", "),
+		fmt.Sprintf("%.3f%%", instPerImp*100),
+		fmt.Sprintf("%.2f%%", ctr*100),
+		fmt.Sprintf("%.1f%%", cvr*100),
+		conf,
+		strconv.Itoa(item.stats.Imp),
+		strconv.Itoa(item.stats.Taps),
+		strconv.Itoa(item.stats.Inst),
+		fmt.Sprintf("$%.2f", item.stats.Spend),
+		fmtx.VolumeBar(item.stats.Imp, maxImp, 12),
+	}
+
+	if showID {
+		row = slices.Insert(row, 1, fmtx.DimS(item.keyword.String()))
+	}
+	if showNegativeKeywords {
+		negS := ""
+		if keyword.IsNegative {
+			negS = fmtx.RedS("✖")
+		}
+		row = append(row, negS)
+	}
+	if showPaused {
+		psdS := ""
+		if isKeywordPaused(keyword, config) {
+			psdS = fmtx.DimS("⏸")
+		}
+		row = append(row, psdS)
+	}
+	tw.WriteRow(row...)
+}
+
 func printBestWorstKeywords(keywords []goappleads.KeywordRow, overall goappleads.BaselineMetrics, n int, showNegativeKeywords, showID, showPaused bool, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) {
 	fmtx.HeaderTo(os.Stdout, "KEYWORD RANKING")
 	fmt.Println(" (only showing keywords with LOW or higher confidence in conversion rates)")
@@ -163,7 +315,7 @@ func printBestWorstKeywords(keywords []goappleads.KeywordRow, overall goappleads
 	for k, v := range aggregateByKeywords(keywords) {
 		if v.Inst > 0 {
 			keyword := keywordsDB.GetKeywordInfo(k)
-			if kws := keywordsDB.GetKeywordsByText(keyword.Keyword); !showNegativeKeywords && isKeywordNegative(kws) {
+			if !showNegativeKeywords && keyword.IsNegative {
 				continue
 			}
 			pZero := pZeroInstalls(v.Taps, overall.CVR)
@@ -278,7 +430,7 @@ func printKeywordRow(tw fmtx.TableWriter, i int, item KeywordStats, overall goap
 
 	if showNegativeKeywords {
 		negS := ""
-		if isKeywordNegative(keywordsDB.GetKeywordsByText(keyword.Keyword)) {
+		if keyword.IsNegative {
 			negS = fmtx.RedS("✖")
 		}
 		row = append(row, negS)
@@ -414,7 +566,7 @@ func printWastefulWithConfidence(keywords []goappleads.KeywordRow, baselines map
 			row = append([]string{fmtx.DimS(w.keyword.String())}, row...)
 		}
 
-		isNegative := isKeywordNegative(keywordsDB.GetKeywordsByText(keyword.Keyword))
+		isNegative := keyword.IsNegative
 		if showNegativeKeywords {
 			var negS string
 			if isNegative {
@@ -440,7 +592,7 @@ func printWastefulWithConfidence(keywords []goappleads.KeywordRow, baselines map
 	fmt.Println()
 	alreadyNeg := 0
 	for _, w := range wasteful {
-		if isKeywordNegative(keywordsDB.GetKeywordsByText(keywordsDB.GetKeywordInfo(w.keyword).Keyword)) {
+		if hasNegativeVariant(keywordsDB.GetKeywordsByText(keywordsDB.GetKeywordInfo(w.keyword).Keyword)) {
 			alreadyNeg++
 		}
 	}
@@ -577,7 +729,7 @@ func printNonConvertingKeywords(stats []goappleads.KeywordRow, config goappleads
 		if !showPaused && isKeywordPaused(ki, config) {
 			continue
 		}
-		if isKeywordNegative(keywordsDB.GetKeywordsByText(ki.Keyword)) {
+		if ki.IsNegative {
 			continue
 		}
 		totalKeywords++
@@ -633,7 +785,7 @@ func printNonConvertingKeywords(stats []goappleads.KeywordRow, config goappleads
 		if !showPaused && isKeywordPaused(ki, config) {
 			continue
 		}
-		if isKeywordNegative(keywordsDB.GetKeywordsByText(ki.Keyword)) {
+		if ki.IsNegative {
 			continue
 		}
 		imp := impressions[ki.ID]
@@ -791,6 +943,7 @@ func Run(args []string) {
 
 	baselines, overall := goappleads.ComputeBaselines(keywordsStats)
 
+	printEfficiencyRanking(keywordsStats, overall, topN, showNegativeKeywords, showID, showPaused, *config, keywordsDB)
 	printBestWorstKeywords(keywordsStats, overall, topN, showNegativeKeywords, showID, showPaused, *config, keywordsDB)
 	printWastefulWithConfidence(keywordsStats, baselines, overall, minSpend, showNegativeKeywords, showID, showPaused, *config, keywordsDB)
 	printBidAnalysis(keywordsStats, *config, keywordsDB)
