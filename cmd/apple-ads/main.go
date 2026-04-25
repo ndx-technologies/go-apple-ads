@@ -18,6 +18,7 @@ import (
 	analysiskeyworddiscovery "github.com/ndx-technologies/go-apple-ads/analysis/keyword_discovery"
 	analysiskeywordduplicatewhitespace "github.com/ndx-technologies/go-apple-ads/analysis/keyword_duplicate-whitespace"
 	analysiskeywordlanguagemismatch "github.com/ndx-technologies/go-apple-ads/analysis/keyword_language_mismatch"
+	appleadsextractrecommendations "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_extract_recommendations"
 	appleadsgetupdatecommandscsv "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_get_update_commands_csv"
 	appleadsmergecsv "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_merge_csv"
 	appleadstimeline "github.com/ndx-technologies/go-apple-ads/cmd/apple_ads_timeline"
@@ -41,6 +42,7 @@ Use this toolkit to setup your AI-driven Apple Ads GitOps.
 
 var commands = map[string]CommandInfo{
 	"timeline":                                      {DocShort: appleadstimeline.DocShort, Run: appleadstimeline.Run},
+	"extract recommendations":                       {DocShort: appleadsextractrecommendations.DocShort, Run: appleadsextractrecommendations.Run},
 	"status keywords":                               {DocShort: statuskeywords.DocShort, Run: statuskeywords.Run},
 	"merge-csv":                                     {DocShort: appleadsmergecsv.DocShort, Run: appleadsmergecsv.Run},
 	"get update-commands-csv":                       {DocShort: appleadsgetupdatecommandscsv.DocShort, Run: appleadsgetupdatecommandscsv.Run},
