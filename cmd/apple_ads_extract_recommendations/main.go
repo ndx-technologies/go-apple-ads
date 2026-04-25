@@ -80,11 +80,11 @@ func outputFileName(worksheetPath string) string {
 }
 
 func writeSheetCSV(f *zip.File, outPath string) error {
-	rc, err := f.Open()
+	r, err := f.Open()
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer r.Close()
 
 	out, err := os.Create(outPath)
 	if err != nil {
@@ -95,7 +95,7 @@ func writeSheetCSV(f *zip.File, outPath string) error {
 	w := csv.NewWriter(out)
 	defer w.Flush()
 
-	dec := xml.NewDecoder(rc)
+	dec := xml.NewDecoder(r)
 	for {
 		tok, err := dec.Token()
 		if err == io.EOF {
