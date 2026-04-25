@@ -125,6 +125,14 @@ func isKeywordPaused(ki goappleads.KeywordInfo, config goappleads.Config) bool {
 	return ki.Status == goappleads.Paused || config.IsAdGroupPaused(ki.AdGroupID)
 }
 
+func isKeywordActiveInConfig(keywordID KeywordID, adGroupID AdGroupID, config goappleads.Config, keywordsDB *goappleads.KeywordCSVDB) bool {
+	keywordInfo, ok := keywordsDB.Keywords[keywordID]
+	if !ok {
+		return false
+	}
+	return keywordInfo.Status != goappleads.Paused && !config.IsAdGroupPaused(adGroupID)
+}
+
 func aggregateByKeywords(rows []goappleads.KeywordRow) map[KeywordID]Agg {
 	agg := make(map[KeywordID]Agg)
 	for _, r := range rows {
@@ -900,11 +908,8 @@ func Run(args []string) {
 		if keepAdGroup != nil && !keepAdGroup[e.AdGroupID] {
 			continue
 		}
-		if !showPaused {
-			keywordInfo := keywordsDB.GetKeywordInfo(e.KeywordID)
-			if keywordInfo.Status == goappleads.Paused || config.IsAdGroupPaused(e.AdGroupID) {
-				continue
-			}
+		if !showPaused && !isKeywordActiveInConfig(e.KeywordID, e.AdGroupID, *config, keywordsDB) {
+			continue
 		}
 		if keepCountry != nil {
 			campaign := config.GetCampaign(e.CampaignID)
@@ -932,6 +937,7 @@ func Run(args []string) {
 				AdGroupID:  r.AdGroupID,
 				Keyword:    r.Keyword,
 				MatchType:  r.MatchType,
+				Status:     goappleads.Paused,
 			}
 			keywordsDB.Keywords[r.KeywordID] = keyword
 			missingKeywords = append(missingKeywords, r)
