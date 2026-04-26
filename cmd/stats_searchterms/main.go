@@ -290,9 +290,8 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 	w.WriteString(fmt.Sprintf("\n Baselines (search terms): CVR=%.1f%%, CTR=%.2f%%, CPI=$%.2f\n", stBase.CVR*100, stBase.CTR*100, stBase.CPI))
 	w.WriteString(fmtx.GreenS(" ★") + " = great CPI (<50% of baseline), consider promoting to [exact]\n")
 	tw := fmtx.TableWriter{
-		Indent:     "  ",
-		Out:        w,
-		ColDefault: columnDefaults,
+		Indent: "  ",
+		Out:    w,
 		Cols: []fmtx.TablCol{
 			{Header: "#"},
 			{Header: "Search Term", Width: 32},
@@ -313,6 +312,7 @@ func printSearchTermsTopPerformers(w io.StringWriter, searchTerms []goappleads.S
 	if showPaused {
 		tw.Cols = slices.Insert(tw.Cols, 12, fmtx.TablCol{Header: "", Width: 1})
 	}
+	goappleads.SetColDefaults(columnDefaults, tw.Cols)
 
 	w.WriteString("\n")
 	tw.WriteHeader()
@@ -445,9 +445,8 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 	w.WriteString("\n")
 
 	tw := fmtx.TableWriter{
-		Indent:     "  ",
-		Out:        w,
-		ColDefault: columnDefaults,
+		Indent: "  ",
+		Out:    w,
 		Cols: []fmtx.TablCol{
 			{Header: "#"},
 			{Header: "Search Term", Width: 36},
@@ -465,6 +464,7 @@ func printSearchTermsNewKeywordCandidates(w io.StringWriter, searchTerms []goapp
 	if showPaused {
 		tw.Cols = slices.Insert(tw.Cols, 10, fmtx.TablCol{Header: "", Width: 1})
 	}
+	goappleads.SetColDefaults(columnDefaults, tw.Cols)
 	tw.WriteHeader()
 	tw.WriteHeaderLine()
 
@@ -567,9 +567,8 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 	w.WriteString(fmt.Sprintf("\n Baselines: CVR=%.1f%%, CTR=%.2f%%\n", stBase.CVR*100, stBase.CTR*100))
 	w.WriteString(fmtx.RedS(" ✗") + " = high confidence (P(0)<10%) that term truly doesn't convert → negate\n")
 	tw := fmtx.TableWriter{
-		Indent:     "  ",
-		Out:        w,
-		ColDefault: columnDefaults,
+		Indent: "  ",
+		Out:    w,
 		Cols: []fmtx.TablCol{
 			{Header: "Search Term", Width: 32},
 			{Header: "Spend"},
@@ -585,6 +584,7 @@ func printSearchTermsUnderperformers(w io.StringWriter, searchTerms []goappleads
 			{Header: "Impressions", Width: 11},
 		},
 	}
+	goappleads.SetColDefaults(columnDefaults, tw.Cols)
 	w.WriteString("\n")
 	tw.WriteHeader()
 	tw.WriteHeaderLine()
@@ -764,9 +764,8 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 	}
 
 	tw := fmtx.TableWriter{
-		Indent:     "  ",
-		Out:        w,
-		ColDefault: columnDefaults,
+		Indent: "  ",
+		Out:    w,
 		Cols: []fmtx.TablCol{
 			{Header: "", Width: 2},
 			{Header: "Search Term", Width: 28},
@@ -794,6 +793,7 @@ func printSearchTermImpressionShare(w io.StringWriter, rows []goappleads.SearchT
 	if showNegativeKeywords {
 		tw.Cols = append(tw.Cols, fmtx.TablCol{Header: "Neg"})
 	}
+	goappleads.SetColDefaults(columnDefaults, tw.Cols)
 
 	tw.WriteHeader()
 	tw.WriteHeaderLine()

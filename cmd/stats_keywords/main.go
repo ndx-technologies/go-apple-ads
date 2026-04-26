@@ -213,9 +213,8 @@ func printEfficiencyRanking(keywords []goappleads.KeywordRow, overall goappleads
 	}
 
 	tw := fmtx.TableWriter{
-		Indent:     "  ",
-		Out:        os.Stdout,
-		ColDefault: columnDefaults,
+		Indent: "  ",
+		Out:    os.Stdout,
 		Cols: []fmtx.TablCol{
 			{Header: "#"},
 			{Header: "Keyword"},
@@ -241,6 +240,7 @@ func printEfficiencyRanking(keywords []goappleads.KeywordRow, overall goappleads
 	if showPaused {
 		tw.Cols = append(tw.Cols, fmtx.TablCol{Header: "", Width: 1})
 	}
+	goappleads.SetColDefaults(columnDefaults, tw.Cols)
 	tw.WriteHeader()
 	tw.WriteHeaderLine()
 
@@ -352,9 +352,8 @@ func printBestWorstKeywords(keywords []goappleads.KeywordRow, overall goappleads
 	}
 
 	tw := fmtx.TableWriter{
-		Indent:     "  ",
-		Out:        os.Stdout,
-		ColDefault: columnDefaults,
+		Indent: "  ",
+		Out:    os.Stdout,
 		Cols: []fmtx.TablCol{
 			{Header: "#"},
 			{Header: "Keyword"},
@@ -380,6 +379,7 @@ func printBestWorstKeywords(keywords []goappleads.KeywordRow, overall goappleads
 	if showPaused {
 		tw.Cols = append(tw.Cols, fmtx.TablCol{Header: "", Width: 1})
 	}
+	goappleads.SetColDefaults(columnDefaults, tw.Cols)
 	tw.WriteHeader()
 	tw.WriteHeaderLine()
 
@@ -481,36 +481,35 @@ func printWastefulWithConfidence(keywords []goappleads.KeywordRow, baselines map
 	fmt.Printf(" Baselines: overall CVR=%.1f%%, CTR=%.2f%%\n", overall.CVR*100, overall.CTR*100)
 	fmt.Println(" Confidence = 1 - P(0 installs by chance) = 1 - (1-CVR)^taps")
 	fmt.Println(" Campaign-specific CVR used when available")
-	cols := []fmtx.TablCol{
-		{Header: "Keyword"},
-		{Header: "Campaign"},
-		{Header: "Ad Group"},
-		{Header: "Spend"},
-		{Header: "Imp"},
-		{Header: "Taps"},
-		{Header: "CTR"},
-		{Header: "CTR/Base"},
-		{Header: "P(0)"},
-		{Header: "Conf"},
-		{Header: "Bid"},
-		{Header: "D"},
-		{Header: "Impressions", Width: 12},
+	tw := fmtx.TableWriter{
+		Indent: "  ",
+		Out:    os.Stdout,
+		Cols: []fmtx.TablCol{
+			{Header: "Keyword"},
+			{Header: "Campaign"},
+			{Header: "Ad Group"},
+			{Header: "Spend"},
+			{Header: "Imp"},
+			{Header: "Taps"},
+			{Header: "CTR"},
+			{Header: "CTR/Base"},
+			{Header: "P(0)"},
+			{Header: "Conf"},
+			{Header: "Bid"},
+			{Header: "D"},
+			{Header: "Impressions", Width: 12},
+		},
 	}
 	if showID {
-		cols = append([]fmtx.TablCol{{Header: "ID"}}, cols...)
+		tw.Cols = append([]fmtx.TablCol{{Header: "ID"}}, tw.Cols...)
 	}
 	if showNegativeKeywords {
-		cols = append(cols, fmtx.TablCol{Header: "", Width: 1})
+		tw.Cols = append(tw.Cols, fmtx.TablCol{Header: "", Width: 1})
 	}
 	if showPaused {
-		cols = append(cols, fmtx.TablCol{Header: "", Width: 1})
+		tw.Cols = append(tw.Cols, fmtx.TablCol{Header: "", Width: 1})
 	}
-	tw := fmtx.TableWriter{
-		Indent:     "  ",
-		Out:        os.Stdout,
-		Cols:       cols,
-		ColDefault: columnDefaults,
-	}
+	goappleads.SetColDefaults(columnDefaults, tw.Cols)
 	fmt.Println()
 	tw.WriteHeader()
 	tw.WriteHeaderLine()
@@ -750,9 +749,8 @@ func printNonConvertingKeywords(stats []goappleads.KeywordRow, config goappleads
 	fmt.Printf(" Total keywords: %d, No impressions: %d (%.1f%%)\n\n", totalKeywords, noImpressionsCount, divSafe(noImpressionsCount, totalKeywords)*100)
 
 	tw := fmtx.TableWriter{
-		Indent:     "  ",
-		Out:        os.Stdout,
-		ColDefault: columnDefaults,
+		Indent: "  ",
+		Out:    os.Stdout,
 		Cols: []fmtx.TablCol{
 			{Header: "Keyword"},
 			{Header: "Campaign"},
@@ -766,6 +764,7 @@ func printNonConvertingKeywords(stats []goappleads.KeywordRow, config goappleads
 	if showPaused {
 		tw.Cols = append(tw.Cols, fmtx.TablCol{Header: "", Width: 1})
 	}
+	goappleads.SetColDefaults(columnDefaults, tw.Cols)
 	tw.WriteHeader()
 	tw.WriteHeaderLine()
 
