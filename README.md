@@ -1,9 +1,5 @@
 # 🔥 Apple Ads Toolkit
 
-<p align="center">
-  ✨ Sponsored by <a href="https://ndx.one/?ct=github">NDX AI Shopping Assistant</a>
-</p>
-
 Tools for structured access to Apple Ads, export/import config, apply changes, analyze data.
 Use this toolkit to setup your AI-driven Ads GitOps.
 No API access required.
