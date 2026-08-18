@@ -2,6 +2,8 @@ github.com/ndx-technologies/fmtx v0.2.2 h1:0BkbcLalqDkNRI8kDIy7NJy4b2LbtmDL4uJQv
 github.com/ndx-technologies/fmtx v0.2.2/go.mod h1:k105R4/pway3ik0IXkprO/jWmZXb7ZKnUoJZgZsgIpk=
 github.com/ndx-technologies/fmtx v0.3.0 h1:y2MGGbFCbZ4QES9UBy+otqo66UeUmvxoNw4BkI7bodM=
 github.com/ndx-technologies/fmtx v0.3.0/go.mod h1:k105R4/pway3ik0IXkprO/jWmZXb7ZKnUoJZgZsgIpk=
+github.com/ndx-technologies/fmtx v0.5.2 h1:/h8H7Xa7o3zaFaTyDO9LA4DPs+CKjkMwdN6DPS3UH7M=
+github.com/ndx-technologies/fmtx v0.5.2/go.mod h1:k105R4/pway3ik0IXkprO/jWmZXb7ZKnUoJZgZsgIpk=
 github.com/ndx-technologies/geo v0.1.3 h1:6wYTNPW+sXq+XE/S/ODF4Gd2H5fFpg/FAQQC5Sxbf2k=
 github.com/ndx-technologies/geo v0.1.3/go.mod h1:LBy/DFExadS0ZW5RLyUiaZVuQNtbTDccl/t7KNhz4V8=
 github.com/ndx-technologies/iterx v0.3.2 h1:13XpVFgbrZIKPRD8xLwAniJfCbWanPSmg2kJusv73PQ=
