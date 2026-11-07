@@ -16,12 +16,12 @@ import (
 	"github.com/ndx-technologies/geo"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
 	"github.com/ndx-technologies/go-apple-ads/analysis"
-	"github.com/ndx-technologies/iterx"
 	"github.com/ndx-technologies/timex"
 )
 
-const DocShort string = "detect Search Match enabled with high default bid"
-const doc string = `
+const (
+	DocShort = "detect Search Match enabled with high default bid"
+	Doc      = `
 Search Match generates traffic even without keywords or for searches not related to keywords at all.
 Search Match generates unrelated low quality traffic.
 This means that with high default bid AdGroup will win many unrelated queries and burn budget.
@@ -30,6 +30,7 @@ Apple Search Ads auctions are CPT-based (max CPT bid). The DefaultMaxBid in conf
 CPT is estimated from keyword stats per campaign → country (Spend / Taps).
 If a country has no stats data, fallback values from --max-bids are used.
 `
+)
 
 type CPTSource string
 
@@ -207,7 +208,7 @@ func Run(args []string) (analysis.Info, error) {
 		from, until     time.Time
 	)
 	fs.Usage = func() {
-		fs.Output().Write([]byte(doc))
+		fs.Output().Write([]byte(Doc))
 		fs.PrintDefaults()
 	}
 	fs.StringVar(&applePath, "apple-path", "apple-ads", "path to dir with config.json and keywords CSVs")
@@ -233,7 +234,7 @@ func Run(args []string) (analysis.Info, error) {
 	}
 
 	var keywordsStats []goappleads.KeywordRow
-	for e := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
+	for e := range goappleads.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
 		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
 			continue
 		}

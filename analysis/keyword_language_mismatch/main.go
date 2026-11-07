@@ -13,7 +13,6 @@ import (
 	"github.com/ndx-technologies/fmtx"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
 	"github.com/ndx-technologies/go-apple-ads/analysis"
-	"github.com/ndx-technologies/iterx"
 	"github.com/ndx-technologies/timex"
 )
 
@@ -342,7 +341,7 @@ func Run(args []string) (analysis.Info, error) {
 
 	analyzer := NewAppleAdsKeywordsLanguageMismatchAnalyzer(config, keywordsDB)
 
-	for r := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
+	for r := range goappleads.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
 		if (!from.IsZero() && r.Day.Before(from)) || (!until.IsZero() && r.Day.After(until)) {
 			continue
 		}

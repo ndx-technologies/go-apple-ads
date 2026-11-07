@@ -14,7 +14,6 @@ import (
 	"github.com/ndx-technologies/fmtx"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
 	"github.com/ndx-technologies/go-apple-ads/analysis"
-	"github.com/ndx-technologies/iterx"
 	"github.com/ndx-technologies/timex"
 )
 
@@ -410,7 +409,7 @@ func Run(args []string) (analysis.Info, error) {
 
 	analyzer := NewAppleAdsKeywordsCannibalisationAnalyzer(config, keywordsDB)
 
-	for e := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
+	for e := range goappleads.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
 		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
 			continue
 		}

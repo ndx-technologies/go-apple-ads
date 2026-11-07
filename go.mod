@@ -5,7 +5,6 @@ go 1.27
 require (
 	github.com/ndx-technologies/fmtx v0.5.2
 	github.com/ndx-technologies/geo v0.1.4
-	github.com/ndx-technologies/iterx v0.3.3
 	github.com/ndx-technologies/slicex v0.2.1
 	github.com/ndx-technologies/tdigest v0.3.2
 	github.com/ndx-technologies/timex v0.1.3

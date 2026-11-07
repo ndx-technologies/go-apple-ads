@@ -12,7 +12,6 @@ import (
 
 	"github.com/ndx-technologies/fmtx"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
-	"github.com/ndx-technologies/iterx"
 	"github.com/ndx-technologies/timex"
 )
 
@@ -324,7 +323,7 @@ func Run(args []string) {
 	}
 
 	var keywordsStats []goappleads.KeywordRow
-	for e := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
+	for e := range goappleads.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
 		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
 			continue
 		}

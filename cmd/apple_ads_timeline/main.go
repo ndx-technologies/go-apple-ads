@@ -13,7 +13,6 @@ import (
 	"github.com/ndx-technologies/fmtx"
 	"github.com/ndx-technologies/geo"
 	goappleads "github.com/ndx-technologies/go-apple-ads"
-	"github.com/ndx-technologies/iterx"
 	"github.com/ndx-technologies/slicex"
 	"github.com/ndx-technologies/timex"
 )
@@ -97,7 +96,7 @@ func Run(args []string) {
 	keepSearchTermInfoCountries := keepCountriesForSearchTermInfo(keepCountries, keepCampaignIDs, keepAdGroupIDs, keepKeywordIDs, config, keywordsDB)
 
 	var keywordsStats []goappleads.KeywordRow
-	for e := range iterx.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
+	for e := range goappleads.FromFile(keywordStatsCSV, goappleads.ParseKeywordStatsCSV) {
 		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
 			continue
 		}
@@ -127,7 +126,7 @@ func Run(args []string) {
 	}
 
 	var campaigns []goappleads.CampaignRow
-	for e := range iterx.FromFile(campaignStatsCSV, goappleads.ParseCampaignsStatsCSV) {
+	for e := range goappleads.FromFile(campaignStatsCSV, goappleads.ParseCampaignsStatsCSV) {
 		if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
 			continue
 		}
@@ -152,7 +151,7 @@ func Run(args []string) {
 
 	var searchTerms []goappleads.SearchTermRow
 	if searchTerm != "" {
-		for e := range iterx.FromFile(searchTermStatsCSV, goappleads.ParseSearchTermsStatsCSV) {
+		for e := range goappleads.FromFile(searchTermStatsCSV, goappleads.ParseSearchTermsStatsCSV) {
 			if (!from.IsZero() && e.Day.Before(from)) || (!until.IsZero() && e.Day.After(until)) {
 				continue
 			}
@@ -187,7 +186,7 @@ func Run(args []string) {
 
 	searchTermInfoByDay := make(map[time.Time]searchTermTimelineInfo)
 	if searchTerm != "" {
-		for e := range iterx.FromFile(searchTermInfoCSV, goappleads.ParseSearchTermInfoFromCSV) {
+		for e := range goappleads.FromFile(searchTermInfoCSV, goappleads.ParseSearchTermInfoFromCSV) {
 			if e.SearchTerm != searchTerm {
 				continue
 			}
